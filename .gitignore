@@ -1,0 +1,8 @@
+# Cache data harga (di-regenerate otomatis tiap hari)
+.cache/
+__pycache__/
+*.pyc
+
+# Hasil screening JSON (besar). CSV SENGAJA di-commit —
+# nanti jadi bahan backtest untuk menyetel bobot skor.
+*.json

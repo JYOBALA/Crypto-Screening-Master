@@ -1,0 +1,15 @@
+# Semua file teks disimpan dengan LF di repo, konsisten di Windows/Mac/Linux.
+# Ini menghilangkan peringatan "LF will be replaced by CRLF" dan mencegah
+# seluruh isi file terlihat "berubah" di diff hanya karena akhir baris.
+* text=auto eol=lf
+
+*.py   text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.csv  text eol=lf
+*.json text eol=lf
+
+# File biner - jangan diutak-atik Git
+*.png  binary
+*.jpg  binary
+*.mp4  binary
