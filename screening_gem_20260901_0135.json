@@ -1,0 +1,1616 @@
+{
+  "generated_at": "20260901_0135",
+  "mode": "gem",
+  "regime": {
+    "status": "HIJAU",
+    "size_mult": 1.0,
+    "message": "BTC di atas EMA50 & EMA200, struktur sehat - cari long",
+    "price": 78581.29,
+    "stochrsi_k": 54.7,
+    "above_ema50": true,
+    "above_ema200": true,
+    "trend": "range"
+  },
+  "config": {
+    "min_volume_usd_daily": 20000000,
+    "min_volume_usd_weekly": 50000000,
+    "vol_mcap_min_pct": null,
+    "min_history_bars": 200,
+    "min_bars_analysis": 120,
+    "quote": "USDT",
+    "pivot_order": 5,
+    "sr_tolerance_pct": 1.5,
+    "capital": 10000,
+    "risk_pct": 1.5,
+    "min_rr": 2.0,
+    "min_score": 70,
+    "max_open_positions": 5,
+    "gem_min_bars": 220,
+    "max_range_width_pct": 45.0,
+    "max_run_30d_pct": 60.0,
+    "gem_min_rr": 2.0,
+    "gem_min_score": 65,
+    "gem_respect_btc": true,
+    "exclude_top_n_volume": 0
+  },
+  "results": [
+    {
+      "symbol": "ETHUSDT",
+      "price": 2467.65,
+      "total": 53,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.49"
+      ],
+      "s_base": 11,
+      "s_contraction": 5,
+      "s_wyckoff": 5,
+      "s_smartmoney": 17,
+      "s_rs": 15,
+      "base_bars": 40,
+      "range_top": 2566.53,
+      "range_bottom": 1822.06,
+      "range_width_pct": 40.9,
+      "pos_in_range": 0.87,
+      "bw_pctile": 92.8,
+      "atr_pctile": 40.6,
+      "contractions": [
+        8.0,
+        4.6
+      ],
+      "obv_slope": 0.71,
+      "up_down_vol": 1.61,
+      "rs_slope": 0.225,
+      "vs_btc_30d": 8.7,
+      "vs_btc_90d": 15.0,
+      "run_30d": 33.8,
+      "drawdown_1y": -48.3,
+      "events": [
+        "SOS"
+      ],
+      "plan": {
+        "entry": 2579.36265,
+        "entry_style": "breakout di atas 2566.53 + konfirmasi volume",
+        "sl": 2338.2673305578746,
+        "tp1": 2938.7650000000003,
+        "tp2": 3311.0000000000005,
+        "pivot": 2566.53,
+        "sl_pct": -9.35,
+        "tp1_pct": 13.93,
+        "tp2_pct": 28.37,
+        "rr1": 1.49,
+        "rr2": 3.03,
+        "risk_amount": 150.0,
+        "position_size": 1604.78
+      },
+      "notes": {
+        "basis": [
+          "basis 40 hari, lebar 40.9%",
+          "MA150 mendatar (ciri Stage 1)",
+          "harga sudah dekat atap range (87%)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 93 \u2014 belum terkompresi",
+          "kontraksi menyempit: 8% \u2192 5%"
+        ],
+        "wyckoff": [
+          "Sign of Strength 12 bar lalu (volume 4.35x)"
+        ],
+        "smartmoney": [
+          "OBV menguat (+0.71)",
+          "A/D Line naik (+0.22)",
+          "volume beli 1.61x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+0.23/bar)",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +8.7% vs BTC (30 hari)",
+          "unggul +15.0% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 594265707.439395,
+      "change_24h": 1.83
+    },
+    {
+      "symbol": "BNBUSDT",
+      "price": 691.44,
+      "total": 53,
+      "grade": "C",
+      "phase": "D",
+      "phase_label": "Phase D \u2014 kekuatan muncul, markup mendekat",
+      "readiness": "SIAP",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_base": 17,
+      "s_contraction": 8,
+      "s_wyckoff": 11,
+      "s_smartmoney": 8,
+      "s_rs": 9,
+      "base_bars": 150,
+      "range_top": 745.74,
+      "range_bottom": 537.25,
+      "range_width_pct": 38.8,
+      "pos_in_range": 0.74,
+      "bw_pctile": 86.1,
+      "atr_pctile": 40.6,
+      "contractions": [
+        5.6,
+        5.2,
+        4.1,
+        3.3
+      ],
+      "obv_slope": -0.05,
+      "up_down_vol": 1.1,
+      "rs_slope": 0.058,
+      "vs_btc_30d": -4.9,
+      "vs_btc_90d": -11.4,
+      "run_30d": 20.2,
+      "drawdown_1y": -49.7,
+      "events": [
+        "SC",
+        "AR",
+        "ST",
+        "SOS"
+      ],
+      "plan": {
+        "entry": 691.44,
+        "entry_style": "sekarang (Phase D, harga belum melar dari support)",
+        "sl": 656.6706,
+        "tp1": 849.985,
+        "tp2": 954.23,
+        "pivot": 726.08,
+        "sl_pct": -5.03,
+        "tp1_pct": 22.93,
+        "tp2_pct": 38.01,
+        "rr1": 4.56,
+        "rr2": 7.56,
+        "risk_amount": 150.0,
+        "position_size": 2982.97
+      },
+      "notes": {
+        "basis": [
+          "basis 150 hari, lebar 38.8%",
+          "MA150 mendatar (ciri Stage 1)",
+          "harga sudah dekat atap range (74%)",
+          "basis terbentuk setelah penurunan (bukan distribusi puncak)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 86 \u2014 belum terkompresi",
+          "VCP 9 kontraksi menyempit: 6% \u2192 5% \u2192 4% \u2192 3%"
+        ],
+        "wyckoff": [
+          "Selling Climax (volume 2.31x)",
+          "Secondary Test volume mengecil (1.36x)",
+          "Sign of Strength 11 bar lalu (volume 2.52x)"
+        ],
+        "smartmoney": [
+          "OBV menurun (-0.05) \u2014 indikasi distribusi diam-diam",
+          "A/D Line naik (+0.00)",
+          "volume beli sedikit unggul (1.10x)"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.06/bar) \u2014 tidak tertinggal",
+          "RS membentuk higher low \u2014 mulai memimpin"
+        ]
+      },
+      "quote_volume": 60948047.37227,
+      "change_24h": 0.999
+    },
+    {
+      "symbol": "TRXUSDT",
+      "price": 0.3326,
+      "total": 44,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.77"
+      ],
+      "s_base": 18,
+      "s_contraction": 9,
+      "s_wyckoff": 0,
+      "s_smartmoney": 12,
+      "s_rs": 5,
+      "base_bars": 150,
+      "range_top": 0.3775,
+      "range_bottom": 0.3108,
+      "range_width_pct": 21.5,
+      "pos_in_range": 0.33,
+      "bw_pctile": 32.8,
+      "atr_pctile": 31.7,
+      "contractions": [
+        5.9,
+        3.6,
+        3.0,
+        2.9
+      ],
+      "obv_slope": 0.18,
+      "up_down_vol": 1.15,
+      "rs_slope": 0.041,
+      "vs_btc_30d": -23.6,
+      "vs_btc_90d": -17.7,
+      "run_30d": 1.4,
+      "drawdown_1y": -11.9,
+      "events": [],
+      "plan": {
+        "entry": 0.35195099999999996,
+        "entry_style": "breakout di atas 0.3502 + konfirmasi volume",
+        "sl": 0.31874199999999997,
+        "tp1": 0.41085,
+        "tp2": 0.4442,
+        "pivot": 0.3502,
+        "sl_pct": -9.44,
+        "tp1_pct": 16.74,
+        "tp2_pct": 26.21,
+        "rr1": 1.77,
+        "rr2": 2.78,
+        "risk_amount": 150.0,
+        "position_size": 1589.71
+      },
+      "notes": {
+        "basis": [
+          "basis 150 hari, lebar 21.5%",
+          "MA150 mendatar (ciri Stage 1)",
+          "harga di paruh bawah range (33%)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 33",
+          "kontraksi menyempit: 6% \u2192 4% \u2192 3% \u2192 3%"
+        ],
+        "wyckoff": [
+          "belum ada event Wyckoff yang jelas"
+        ],
+        "smartmoney": [
+          "OBV sedikit naik (+0.18)",
+          "A/D Line naik (+0.02)",
+          "volume beli sedikit unggul (1.15x)"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.04/bar) \u2014 tidak tertinggal"
+        ]
+      },
+      "quote_volume": 34260871.62872,
+      "change_24h": -1.159
+    },
+    {
+      "symbol": "NEARUSDT",
+      "price": 1.922,
+      "total": 43,
+      "grade": "C",
+      "phase": "D",
+      "phase_label": "Phase D \u2014 kekuatan muncul, markup mendekat",
+      "readiness": "SIAP",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_base": 15,
+      "s_contraction": 9,
+      "s_wyckoff": 16,
+      "s_smartmoney": 2,
+      "s_rs": 1,
+      "base_bars": 65,
+      "range_top": 2.147,
+      "range_bottom": 1.538,
+      "range_width_pct": 39.6,
+      "pos_in_range": 0.63,
+      "bw_pctile": 34.4,
+      "atr_pctile": 57.2,
+      "contractions": [
+        12.9,
+        24.0,
+        13.1,
+        7.1
+      ],
+      "obv_slope": -0.15,
+      "up_down_vol": 1.04,
+      "rs_slope": -0.494,
+      "vs_btc_30d": -10.3,
+      "vs_btc_90d": -44.6,
+      "run_30d": 14.8,
+      "drawdown_1y": -42.5,
+      "events": [
+        "SPRING",
+        "TEST",
+        "SOS"
+      ],
+      "plan": {
+        "entry": 1.8424999999999998,
+        "entry_style": "limit di zona back-up/LPS (jangan kejar bar SOS)",
+        "sl": 1.6761599999999999,
+        "tp1": 2.4515,
+        "tp2": 2.7559999999999993,
+        "pivot": 2.147,
+        "sl_pct": -9.03,
+        "tp1_pct": 33.05,
+        "tp2_pct": 49.58,
+        "rr1": 3.66,
+        "rr2": 5.49,
+        "risk_amount": 150.0,
+        "position_size": 1661.51
+      },
+      "notes": {
+        "basis": [
+          "basis 65 hari, lebar 39.6%",
+          "MA150 mulai naik (transisi Stage 2)",
+          "harga di tengah range (63%)",
+          "basis terbentuk setelah penurunan (bukan distribusi puncak)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 34",
+          "kontraksi menyempit: 13% \u2192 24% \u2192 13% \u2192 7%"
+        ],
+        "wyckoff": [
+          "Spring (volume 1.32x, tembus 2.1%) 20 bar lalu",
+          "Test spring volume hanya 24.7% dari spring \u2014 pasokan habis",
+          "Sign of Strength 10 bar lalu (volume 3.28x)"
+        ],
+        "smartmoney": [
+          "OBV menurun (-0.15) \u2014 indikasi distribusi diam-diam",
+          "volume beli-jual seimbang (1.04x)"
+        ],
+        "rs": [
+          "RS vs BTC melemah (-0.49/bar)"
+        ]
+      },
+      "quote_volume": 25892628.8606,
+      "change_24h": 4.989
+    },
+    {
+      "symbol": "BTCUSDT",
+      "price": 78581.29,
+      "total": 36,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_base": 17,
+      "s_contraction": 5,
+      "s_wyckoff": 5,
+      "s_smartmoney": 4,
+      "s_rs": 5,
+      "base_bars": 150,
+      "range_top": 82850.0,
+      "range_bottom": 57800.19,
+      "range_width_pct": 43.3,
+      "pos_in_range": 0.83,
+      "bw_pctile": 88.3,
+      "atr_pctile": 40.6,
+      "contractions": [
+        7.5,
+        11.4,
+        7.0,
+        4.5
+      ],
+      "obv_slope": -1.82,
+      "up_down_vol": 0.89,
+      "rs_slope": 0.0,
+      "vs_btc_30d": 0.0,
+      "vs_btc_90d": 0.0,
+      "run_30d": 25.1,
+      "drawdown_1y": -37.7,
+      "events": [
+        "SOS"
+      ],
+      "plan": {
+        "entry": 81886.26434999998,
+        "entry_style": "breakout di atas 81478.9 + konfirmasi volume",
+        "sl": 76111.37705847947,
+        "tp1": 95374.905,
+        "tp2": 107899.81,
+        "pivot": 81478.87,
+        "sl_pct": -7.05,
+        "tp1_pct": 16.47,
+        "tp2_pct": 31.77,
+        "rr1": 2.34,
+        "rr2": 4.5,
+        "risk_amount": 150.0,
+        "position_size": 2126.96
+      },
+      "notes": {
+        "basis": [
+          "basis 150 hari, lebar 43.3%",
+          "MA150 mendatar (ciri Stage 1)",
+          "harga sudah dekat atap range (83%)",
+          "basis terbentuk setelah penurunan (bukan distribusi puncak)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 88 \u2014 belum terkompresi",
+          "kontraksi menyempit: 7% \u2192 11% \u2192 7% \u2192 4%"
+        ],
+        "wyckoff": [
+          "Sign of Strength 11 bar lalu (volume 2.8x)"
+        ],
+        "smartmoney": [
+          "OBV menurun (-1.82) \u2014 indikasi distribusi diam-diam",
+          "A/D Line naik (+0.02)",
+          "volume jual dominan (0.89x)"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.00/bar) \u2014 tidak tertinggal"
+        ]
+      },
+      "quote_volume": 1179310663.4744003,
+      "change_24h": 0.956
+    },
+    {
+      "symbol": "UUSDT",
+      "price": 0.9998,
+      "total": 36,
+      "grade": "C",
+      "phase": "B",
+      "phase_label": "Phase B \u2014 membangun sebab, masih butuh waktu",
+      "readiness": "PANTAU",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_base": 18,
+      "s_contraction": 3,
+      "s_wyckoff": 6,
+      "s_smartmoney": 0,
+      "s_rs": 9,
+      "base_bars": 150,
+      "range_top": 1.002,
+      "range_bottom": 0.9992,
+      "range_width_pct": 0.3,
+      "pos_in_range": 0.21,
+      "bw_pctile": 45.6,
+      "atr_pctile": 22.8,
+      "contractions": [],
+      "obv_slope": -0.47,
+      "up_down_vol": 0.57,
+      "rs_slope": 0.082,
+      "vs_btc_30d": -25.2,
+      "vs_btc_90d": -17.8,
+      "run_30d": -0.1,
+      "drawdown_1y": null,
+      "events": [
+        "SC",
+        "AR",
+        "ST"
+      ],
+      "plan": {
+        "entry": 1.0057034999999999,
+        "entry_style": "breakout di atas 1.0007 + konfirmasi volume",
+        "sl": 0.969224,
+        "tp1": 1.0969022499999996,
+        "tp2": 1.1881009999999992,
+        "pivot": 1.0007,
+        "sl_pct": -3.63,
+        "tp1_pct": 9.07,
+        "tp2_pct": 18.14,
+        "rr1": 2.5,
+        "rr2": 5.0,
+        "risk_amount": 150.0,
+        "position_size": 4135.35
+      },
+      "notes": {
+        "basis": [
+          "basis 150 hari, lebar 0.3%",
+          "MA150 mendatar (ciri Stage 1)",
+          "harga di paruh bawah range (21%)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 46 \u2014 belum terkompresi",
+          "ATR di persentil 23 \u2014 rentang harian mengecil",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "Selling Climax (volume 2.75x)",
+          "Secondary Test volume mengecil (0.65x)"
+        ],
+        "smartmoney": [
+          "OBV menurun (-0.47) \u2014 indikasi distribusi diam-diam",
+          "volume jual dominan (0.57x)"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.08/bar) \u2014 tidak tertinggal",
+          "RS membentuk higher low \u2014 mulai memimpin"
+        ]
+      },
+      "quote_volume": 27528134.9259,
+      "change_24h": 0.0
+    },
+    {
+      "symbol": "ZECUSDT",
+      "price": 848.1,
+      "total": 32,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa",
+        "sudah naik 84% dalam 30 hari \u2014 bukan lagi fase akumulasi"
+      ],
+      "s_base": 0,
+      "s_contraction": 3,
+      "s_wyckoff": 0,
+      "s_smartmoney": 14,
+      "s_rs": 15,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 76.7,
+      "atr_pctile": 18.9,
+      "contractions": [],
+      "obv_slope": 0.18,
+      "up_down_vol": 1.54,
+      "rs_slope": 0.466,
+      "vs_btc_30d": 58.6,
+      "vs_btc_90d": 21.4,
+      "run_30d": 83.7,
+      "drawdown_1y": -4.5,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 77 \u2014 belum terkompresi",
+          "ATR di persentil 19 \u2014 rentang harian mengecil",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV sedikit naik (+0.18)",
+          "A/D Line naik (+0.10)",
+          "volume beli 1.54x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+0.47/bar)",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +58.6% vs BTC (30 hari)",
+          "unggul +21.4% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 168561471.03499,
+      "change_24h": 2.896
+    },
+    {
+      "symbol": "RLUSDUSDT",
+      "price": 1.0005,
+      "total": 32,
+      "grade": "C",
+      "phase": "B",
+      "phase_label": "Phase B \u2014 membangun sebab, masih butuh waktu",
+      "readiness": "PANTAU",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_base": 17,
+      "s_contraction": 0,
+      "s_wyckoff": 6,
+      "s_smartmoney": 0,
+      "s_rs": 9,
+      "base_bars": 150,
+      "range_top": 1.0029,
+      "range_bottom": 0.9984,
+      "range_width_pct": 0.5,
+      "pos_in_range": 0.47,
+      "bw_pctile": 46.7,
+      "atr_pctile": 60.0,
+      "contractions": [],
+      "obv_slope": -2.31,
+      "up_down_vol": 0.7,
+      "rs_slope": 0.083,
+      "vs_btc_30d": -25.1,
+      "vs_btc_90d": -17.8,
+      "run_30d": -0.1,
+      "drawdown_1y": null,
+      "events": [
+        "SC",
+        "AR",
+        "ST"
+      ],
+      "plan": {
+        "entry": 1.0065074999999999,
+        "entry_style": "breakout di atas 1.0015 + konfirmasi volume",
+        "sl": 0.969903,
+        "tp1": 1.0980187499999996,
+        "tp2": 1.1895299999999995,
+        "pivot": 1.0015,
+        "sl_pct": -3.64,
+        "tp1_pct": 9.09,
+        "tp2_pct": 18.18,
+        "rr1": 2.5,
+        "rr2": 5.0,
+        "risk_amount": 150.0,
+        "position_size": 4124.52
+      },
+      "notes": {
+        "basis": [
+          "basis 150 hari, lebar 0.5%",
+          "MA150 mendatar (ciri Stage 1)",
+          "harga di tengah range (47%)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 47 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "Selling Climax (volume 2.44x)",
+          "Secondary Test volume mengecil (0.1x)"
+        ],
+        "smartmoney": [
+          "OBV menurun (-2.31) \u2014 indikasi distribusi diam-diam",
+          "volume jual dominan (0.70x)"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.08/bar) \u2014 tidak tertinggal",
+          "RS membentuk higher low \u2014 mulai memimpin"
+        ]
+      },
+      "quote_volume": 95874735.3776,
+      "change_24h": 0.01
+    },
+    {
+      "symbol": "LINKUSDT",
+      "price": 11.325,
+      "total": 32,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 17,
+      "s_rs": 15,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 93.9,
+      "atr_pctile": 66.7,
+      "contractions": [],
+      "obv_slope": 1.42,
+      "up_down_vol": 1.41,
+      "rs_slope": 0.329,
+      "vs_btc_30d": 15.3,
+      "vs_btc_90d": 17.5,
+      "run_30d": 40.4,
+      "drawdown_1y": -55.8,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+1.42)",
+          "A/D Line naik (+0.24)",
+          "volume beli 1.41x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+0.33/bar)",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +15.3% vs BTC (30 hari)",
+          "unggul +17.5% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 36290049.31021,
+      "change_24h": 2.253
+    },
+    {
+      "symbol": "PUMPUSDT",
+      "price": 0.004453,
+      "total": 32,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa",
+        "sudah naik 111% dalam 30 hari \u2014 bukan lagi fase akumulasi"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 17,
+      "s_rs": 15,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 94.4,
+      "atr_pctile": 96.1,
+      "contractions": [],
+      "obv_slope": 0.98,
+      "up_down_vol": 1.37,
+      "rs_slope": 1.848,
+      "vs_btc_30d": 85.5,
+      "vs_btc_90d": 154.3,
+      "run_30d": 110.5,
+      "drawdown_1y": null,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+0.98)",
+          "A/D Line naik (+0.38)",
+          "volume beli 1.37x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+1.85/bar)",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +85.5% vs BTC (30 hari)",
+          "unggul +154.3% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 30889852.706694,
+      "change_24h": 2.726
+    },
+    {
+      "symbol": "ENAUSDT",
+      "price": 0.1495,
+      "total": 32,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa",
+        "sudah naik 89% dalam 30 hari \u2014 bukan lagi fase akumulasi"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 17,
+      "s_rs": 15,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 94.4,
+      "atr_pctile": 84.4,
+      "contractions": [],
+      "obv_slope": 4.43,
+      "up_down_vol": 1.38,
+      "rs_slope": 0.811,
+      "vs_btc_30d": 63.7,
+      "vs_btc_90d": 40.7,
+      "run_30d": 88.8,
+      "drawdown_1y": -82.9,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+4.43)",
+          "A/D Line naik (+0.15)",
+          "volume beli 1.38x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+0.81/bar)",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +63.7% vs BTC (30 hari)",
+          "unggul +40.7% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 24064437.964453,
+      "change_24h": 2.103
+    },
+    {
+      "symbol": "UNIUSDT",
+      "price": 5.232,
+      "total": 30,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 17,
+      "s_rs": 13,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 78.9,
+      "atr_pctile": 74.4,
+      "contractions": [],
+      "obv_slope": 3.39,
+      "up_down_vol": 1.76,
+      "rs_slope": 0.112,
+      "vs_btc_30d": 3.0,
+      "vs_btc_90d": 69.2,
+      "run_30d": 28.0,
+      "drawdown_1y": -49.5,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 79 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+3.39)",
+          "A/D Line naik (+0.14)",
+          "volume beli 1.76x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.11/bar) \u2014 tidak tertinggal",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +3.0% vs BTC (30 hari)",
+          "unggul +69.2% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 38925969.40592,
+      "change_24h": 3.499
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "price": 0.01598,
+      "total": 28,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa",
+        "sudah naik 244% dalam 30 hari \u2014 bukan lagi fase akumulasi"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 13,
+      "s_rs": 15,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 93.9,
+      "atr_pctile": 83.9,
+      "contractions": [],
+      "obv_slope": 1.32,
+      "up_down_vol": 1.99,
+      "rs_slope": 1.306,
+      "vs_btc_30d": 218.6,
+      "vs_btc_90d": 132.0,
+      "run_30d": 243.7,
+      "drawdown_1y": null,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+1.32)",
+          "volume beli 1.99x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+1.31/bar)",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +218.6% vs BTC (30 hari)",
+          "unggul +132.0% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 28900143.765223,
+      "change_24h": 6.76
+    },
+    {
+      "symbol": "SOLUSDT",
+      "price": 103.06,
+      "total": 26,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 17,
+      "s_rs": 9,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 87.2,
+      "atr_pctile": 52.8,
+      "contractions": [],
+      "obv_slope": 0.54,
+      "up_down_vol": 1.58,
+      "rs_slope": 0.049,
+      "vs_btc_30d": 18.2,
+      "vs_btc_90d": 21.1,
+      "run_30d": 43.2,
+      "drawdown_1y": -59.3,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 87 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+0.54)",
+          "A/D Line naik (+0.12)",
+          "volume beli 1.58x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.05/bar) \u2014 tidak tertinggal",
+          "unggul +18.2% vs BTC (30 hari)",
+          "unggul +21.1% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 217970583.7837,
+      "change_24h": 1.347
+    },
+    {
+      "symbol": "ARBUSDT",
+      "price": 0.1094,
+      "total": 25,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 20,
+      "s_rs": 5,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 76.7,
+      "atr_pctile": 63.9,
+      "contractions": [],
+      "obv_slope": 0.76,
+      "up_down_vol": 1.74,
+      "rs_slope": -0.265,
+      "vs_btc_30d": 13.6,
+      "vs_btc_90d": 0.1,
+      "run_30d": 38.7,
+      "drawdown_1y": -80.4,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 77 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "harga datar tapi OBV naik (+0.76) \u2014 akumulasi diam-diam",
+          "A/D Line naik (+0.24)",
+          "volume beli 1.74x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC melemah (-0.26/bar)",
+          "unggul +13.6% vs BTC (30 hari)",
+          "unggul +0.1% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 31056161.93714,
+      "change_24h": 40.78
+    },
+    {
+      "symbol": "TRUMPUSDT",
+      "price": 2.426,
+      "total": 24,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa",
+        "sudah naik 69% dalam 30 hari \u2014 bukan lagi fase akumulasi"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 13,
+      "s_rs": 11,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 94.4,
+      "atr_pctile": 98.9,
+      "contractions": [],
+      "obv_slope": 1.35,
+      "up_down_vol": 1.83,
+      "rs_slope": 0.217,
+      "vs_btc_30d": 43.7,
+      "vs_btc_90d": 6.6,
+      "run_30d": 68.8,
+      "drawdown_1y": -74.7,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+1.35)",
+          "volume beli 1.83x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+0.22/bar)",
+          "unggul +43.7% vs BTC (30 hari)",
+          "unggul +6.6% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 24032656.957368,
+      "change_24h": 1.48
+    },
+    {
+      "symbol": "0GUSDT",
+      "price": 0.2253,
+      "total": 23,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 7,
+      "s_wyckoff": 0,
+      "s_smartmoney": 13,
+      "s_rs": 3,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 17.8,
+      "atr_pctile": 40.6,
+      "contractions": [],
+      "obv_slope": 0.63,
+      "up_down_vol": 1.82,
+      "rs_slope": -0.734,
+      "vs_btc_30d": 28.2,
+      "vs_btc_90d": -58.9,
+      "run_30d": 53.3,
+      "drawdown_1y": null,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 18 \u2014 volatilitas terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+0.63)",
+          "volume beli 1.82x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC melemah (-0.73/bar)",
+          "unggul +28.2% vs BTC (30 hari)"
+        ]
+      },
+      "quote_volume": 26840071.739313,
+      "change_24h": 45.423
+    },
+    {
+      "symbol": "BMTUSDT",
+      "price": 0.02006,
+      "total": 22,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa",
+        "sudah naik 69% dalam 30 hari \u2014 bukan lagi fase akumulasi"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 7,
+      "s_rs": 15,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 87.2,
+      "atr_pctile": 91.7,
+      "contractions": [],
+      "obv_slope": 2.68,
+      "up_down_vol": 0.8,
+      "rs_slope": 0.803,
+      "vs_btc_30d": 44.3,
+      "vs_btc_90d": 17.7,
+      "run_30d": 69.4,
+      "drawdown_1y": -74.3,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 87 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menguat (+2.68)",
+          "volume jual dominan (0.80x)"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+0.80/bar)",
+          "RS membentuk higher low \u2014 mulai memimpin",
+          "unggul +44.3% vs BTC (30 hari)",
+          "unggul +17.7% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 104832942.781682,
+      "change_24h": -4.271
+    },
+    {
+      "symbol": "XRPUSDT",
+      "price": 1.3798,
+      "total": 21,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 14,
+      "s_rs": 7,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 94.4,
+      "atr_pctile": 93.9,
+      "contractions": [],
+      "obv_slope": 0.12,
+      "up_down_vol": 1.46,
+      "rs_slope": -0.011,
+      "vs_btc_30d": 5.0,
+      "vs_btc_90d": -3.8,
+      "run_30d": 30.1,
+      "drawdown_1y": -56.7,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV sedikit naik (+0.12)",
+          "A/D Line naik (+0.01)",
+          "volume beli 1.46x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC stabil (-0.01/bar) \u2014 tidak tertinggal",
+          "unggul +5.0% vs BTC (30 hari)"
+        ]
+      },
+      "quote_volume": 125112579.76932,
+      "change_24h": 2.213
+    },
+    {
+      "symbol": "PEPEUSDT",
+      "price": 3.55e-06,
+      "total": 19,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 10,
+      "s_rs": 9,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 94.4,
+      "atr_pctile": 90.0,
+      "contractions": [],
+      "obv_slope": 0.02,
+      "up_down_vol": 1.04,
+      "rs_slope": 0.172,
+      "vs_btc_30d": 3.1,
+      "vs_btc_90d": -3.9,
+      "run_30d": 28.2,
+      "drawdown_1y": -72.0,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV sedikit naik (+0.02)",
+          "A/D Line naik (+0.04)",
+          "volume beli-jual seimbang (1.04x)"
+        ],
+        "rs": [
+          "RS vs BTC menguat (+0.17/bar)",
+          "unggul +3.1% vs BTC (30 hari)"
+        ]
+      },
+      "quote_volume": 25787853.00409152,
+      "change_24h": 3.801
+    },
+    {
+      "symbol": "DASHUSDT",
+      "price": 44.89,
+      "total": 19,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 14,
+      "s_rs": 5,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 68.3,
+      "atr_pctile": 53.3,
+      "contractions": [],
+      "obv_slope": 0.13,
+      "up_down_vol": 2.11,
+      "rs_slope": -0.184,
+      "vs_btc_30d": 18.9,
+      "vs_btc_90d": 1.0,
+      "run_30d": 44.0,
+      "drawdown_1y": -70.1,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 68 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV sedikit naik (+0.13)",
+          "A/D Line naik (+0.01)",
+          "volume beli 2.11x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC melemah (-0.18/bar)",
+          "unggul +18.9% vs BTC (30 hari)",
+          "unggul +1.0% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 23890342.02313,
+      "change_24h": 9.782
+    },
+    {
+      "symbol": "ENSOUSDT",
+      "price": 0.887,
+      "total": 18,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 7,
+      "s_wyckoff": 0,
+      "s_smartmoney": 4,
+      "s_rs": 7,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 15.6,
+      "atr_pctile": 48.9,
+      "contractions": [],
+      "obv_slope": 0.05,
+      "up_down_vol": 0.58,
+      "rs_slope": 0.142,
+      "vs_btc_30d": -30.7,
+      "vs_btc_90d": 16.5,
+      "run_30d": -5.6,
+      "drawdown_1y": null,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 16 \u2014 volatilitas terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV sedikit naik (+0.05)",
+          "volume jual dominan (0.58x)"
+        ],
+        "rs": [
+          "RS vs BTC stabil (+0.14/bar) \u2014 tidak tertinggal",
+          "unggul +16.5% vs BTC (90 hari)"
+        ]
+      },
+      "quote_volume": 20444616.70326,
+      "change_24h": 4.841
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "price": 0.08285,
+      "total": 15,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 14,
+      "s_rs": 1,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 94.4,
+      "atr_pctile": 77.8,
+      "contractions": [],
+      "obv_slope": 0.11,
+      "up_down_vol": 1.4,
+      "rs_slope": -0.113,
+      "vs_btc_30d": -5.3,
+      "vs_btc_90d": -28.4,
+      "run_30d": 19.8,
+      "drawdown_1y": -73.0,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 94 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV sedikit naik (+0.11)",
+          "A/D Line naik (+0.06)",
+          "volume beli 1.40x volume jual di dalam range"
+        ],
+        "rs": [
+          "RS vs BTC melemah (-0.11/bar)"
+        ]
+      },
+      "quote_volume": 36241871.61272,
+      "change_24h": 1.075
+    },
+    {
+      "symbol": "SUIUSDT",
+      "price": 0.727,
+      "total": 3,
+      "grade": "C",
+      "phase": "?",
+      "phase_label": "belum terklasifikasi",
+      "readiness": "PANTAU",
+      "vetoed": true,
+      "veto_reasons": [
+        "Basis: tidak ada basis sideways (harga masih trending)",
+        "Wyckoff: tidak ada trading range untuk dianalisa"
+      ],
+      "s_base": 0,
+      "s_contraction": 0,
+      "s_wyckoff": 0,
+      "s_smartmoney": 2,
+      "s_rs": 1,
+      "base_bars": null,
+      "range_top": null,
+      "range_bottom": null,
+      "range_width_pct": null,
+      "pos_in_range": null,
+      "bw_pctile": 70.6,
+      "atr_pctile": 67.8,
+      "contractions": [],
+      "obv_slope": -0.23,
+      "up_down_vol": 0.95,
+      "rs_slope": -0.341,
+      "vs_btc_30d": -17.5,
+      "vs_btc_90d": -27.8,
+      "run_30d": 7.6,
+      "drawdown_1y": -81.7,
+      "events": [],
+      "plan": null,
+      "notes": {
+        "basis": [
+          "tidak ada basis sideways (harga masih trending)"
+        ],
+        "kontraksi": [
+          "BandWidth di persentil 71 \u2014 belum terkompresi",
+          "kontraksi belum terbentuk"
+        ],
+        "wyckoff": [
+          "tidak ada trading range untuk dianalisa"
+        ],
+        "smartmoney": [
+          "OBV menurun (-0.23) \u2014 indikasi distribusi diam-diam",
+          "volume beli-jual seimbang (0.95x)"
+        ],
+        "rs": [
+          "RS vs BTC melemah (-0.34/bar)"
+        ]
+      },
+      "quote_volume": 40952390.86411,
+      "change_24h": 2.819
+    }
+  ]
+}

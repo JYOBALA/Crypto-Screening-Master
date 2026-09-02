@@ -1,0 +1,1268 @@
+{
+  "generated_at": "20260901_0119",
+  "mode": "daily",
+  "regime": {
+    "status": "HIJAU",
+    "size_mult": 1.0,
+    "message": "BTC di atas EMA50 & EMA200, struktur sehat - cari long",
+    "price": 78581.29,
+    "stochrsi_k": 54.7,
+    "above_ema50": true,
+    "above_ema200": true,
+    "trend": "range"
+  },
+  "config": {
+    "min_volume_usd_daily": 20000000,
+    "min_volume_usd_weekly": 50000000,
+    "vol_mcap_min_pct": null,
+    "min_history_bars": 200,
+    "min_bars_analysis": 120,
+    "quote": "USDT",
+    "pivot_order": 5,
+    "sr_tolerance_pct": 1.5,
+    "capital": 10000,
+    "risk_pct": 1.5,
+    "min_rr": 2.0,
+    "min_score": 70,
+    "max_open_positions": 5,
+    "gem_min_bars": 220,
+    "max_range_width_pct": 45.0,
+    "max_run_30d_pct": 60.0,
+    "gem_min_rr": 2.0,
+    "gem_min_score": 65,
+    "gem_respect_btc": true,
+    "exclude_top_n_volume": 0
+  },
+  "results": [
+    {
+      "symbol": "NEARUSDT",
+      "price": 1.922,
+      "total": 60,
+      "grade": "B",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.65 (min 1:2.0)"
+      ],
+      "s_volume": 15,
+      "s_stochrsi": 7,
+      "s_fib": 8,
+      "s_sr": 20,
+      "s_pattern": 10,
+      "vol_ratio": 0.86,
+      "stochrsi_k": 53.2,
+      "stochrsi_htf": 42.9,
+      "fib_retr": 0.369,
+      "trend": "uptrend",
+      "pattern": "Double Bottom",
+      "dist_to_res_pct": 7.28,
+      "plan": {
+        "entry": 1.8065689999999999,
+        "sl": 1.65164274,
+        "tp1": 2.0620000000000003,
+        "tp2": 2.5233619999999997,
+        "sl_pct": -8.58,
+        "tp1_pct": 14.14,
+        "tp2_pct": 39.68,
+        "rr1": 1.65,
+        "rr2": 4.63,
+        "risk_amount": 150.0,
+        "position_size": 1749.12
+      },
+      "notes": {
+        "volume": [
+          "volume dry-up saat pullback (koreksi sehat)"
+        ],
+        "stochrsi": [
+          "K naik dari zona tidak jenuh (53), HTF masih rendah (43)"
+        ],
+        "fibonacci": [
+          "retracement dangkal (retr 0.369) - trend kuat"
+        ],
+        "sr": [
+          "di zona support kuat (2x sentuhan, flip zone)"
+        ],
+        "pattern": [
+          "Double Bottom - neckline tertembus"
+        ]
+      },
+      "quote_volume": 25801203.7582,
+      "change_24h": 4.352
+    },
+    {
+      "symbol": "DASHUSDT",
+      "price": 44.89,
+      "total": 60,
+      "grade": "B",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 20,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 20,
+      "s_pattern": 12,
+      "vol_ratio": 2.1,
+      "stochrsi_k": 70.5,
+      "stochrsi_htf": 98.1,
+      "fib_retr": 0.184,
+      "trend": "range",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 5.08,
+      "plan": {
+        "entry": 37.51006,
+        "sl": 32.716767600000004,
+        "tp1": 47.169999999999995,
+        "tp2": 66.42999999999999,
+        "sl_pct": -12.78,
+        "tp1_pct": 25.75,
+        "tp2_pct": 77.1,
+        "rr1": 2.02,
+        "rr2": 6.03,
+        "risk_amount": 150.0,
+        "position_size": 1173.83
+      },
+      "notes": {
+        "volume": [
+          "volume di atas MA20 (2.10x) & OBV menguat"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=70, D=64)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.184) - entry telat"
+        ],
+        "sr": [
+          "di zona support kuat (3x sentuhan)"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 48.5"
+        ]
+      },
+      "quote_volume": 23897179.19399,
+      "change_24h": 8.85
+    },
+    {
+      "symbol": "XRPUSDT",
+      "price": 1.3798,
+      "total": 58,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.05 (min 1:2.0)"
+      ],
+      "s_volume": 15,
+      "s_stochrsi": 3,
+      "s_fib": 8,
+      "s_sr": 20,
+      "s_pattern": 12,
+      "vol_ratio": 0.57,
+      "stochrsi_k": 52.2,
+      "stochrsi_htf": 85.8,
+      "fib_retr": 0.449,
+      "trend": "range",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 7.5,
+      "plan": {
+        "entry": 1.3009416999999999,
+        "sl": 1.127542482,
+        "tp1": 1.4833500000000002,
+        "tp2": 2.1409666,
+        "sl_pct": -13.33,
+        "tp1_pct": 14.02,
+        "tp2_pct": 64.57,
+        "rr1": 1.05,
+        "rr2": 4.84,
+        "risk_amount": 150.0,
+        "position_size": 1125.39
+      },
+      "notes": {
+        "volume": [
+          "volume dry-up saat pullback (koreksi sehat)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=52, D=57)"
+        ],
+        "fibonacci": [
+          "retracement dangkal (retr 0.449) - trend kuat"
+        ],
+        "sr": [
+          "di zona support kuat (2x sentuhan, flip zone)"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 1.4335"
+        ]
+      },
+      "quote_volume": 126532460.99017,
+      "change_24h": 2.136
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "price": 0.08285,
+      "total": 57,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:0.95 (min 1:2.0)"
+      ],
+      "s_volume": 15,
+      "s_stochrsi": 3,
+      "s_fib": 15,
+      "s_sr": 12,
+      "s_pattern": 12,
+      "vol_ratio": 0.59,
+      "stochrsi_k": 24.8,
+      "stochrsi_htf": 79.2,
+      "fib_retr": 0.542,
+      "trend": "range",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 5.36,
+      "plan": {
+        "entry": 0.08285,
+        "sl": 0.0781893,
+        "tp1": 0.08729166666666666,
+        "tp2": 0.12591,
+        "sl_pct": -5.63,
+        "tp1_pct": 5.36,
+        "tp2_pct": 51.97,
+        "rr1": 0.95,
+        "rr2": 9.24,
+        "risk_amount": 150.0,
+        "position_size": 2666.44
+      },
+      "notes": {
+        "volume": [
+          "volume dry-up saat pullback (koreksi sehat)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=25, D=34)"
+        ],
+        "fibonacci": [
+          "golden zone (retr 0.542), tanpa confluence"
+        ],
+        "sr": [
+          "dekat support (2.8% di atas)"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 0.1008"
+        ]
+      },
+      "quote_volume": 36189213.23441,
+      "change_24h": 1.011
+    },
+    {
+      "symbol": "TRXUSDT",
+      "price": 0.3326,
+      "total": 55,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.85 (min 1:2.0)"
+      ],
+      "s_volume": 8,
+      "s_stochrsi": 20,
+      "s_fib": 8,
+      "s_sr": 12,
+      "s_pattern": 7,
+      "vol_ratio": 1.08,
+      "stochrsi_k": 11.3,
+      "stochrsi_htf": 33.8,
+      "fib_retr": 0.447,
+      "trend": "uptrend",
+      "pattern": "Double Bottom",
+      "dist_to_res_pct": 4.96,
+      "plan": {
+        "entry": 0.3326,
+        "sl": 0.323671,
+        "tp1": 0.3491,
+        "tp2": 0.3745492,
+        "sl_pct": -2.68,
+        "tp1_pct": 4.96,
+        "tp2_pct": 12.61,
+        "rr1": 1.85,
+        "rr2": 4.7,
+        "risk_amount": 150.0,
+        "position_size": 5587.41
+      },
+      "notes": {
+        "volume": [
+          "volume normal (1.08x MA20)"
+        ],
+        "stochrsi": [
+          "cross up dari oversold (11) + HTF berbalik naik (34)"
+        ],
+        "fibonacci": [
+          "retracement dangkal (retr 0.447) - trend kuat"
+        ],
+        "sr": [
+          "dekat support (2.2% di atas)"
+        ],
+        "pattern": [
+          "Double Bottom terbentuk, belum konfirmasi neckline"
+        ]
+      },
+      "quote_volume": 34505390.1806,
+      "change_24h": -1.071
+    },
+    {
+      "symbol": "0GUSDT",
+      "price": 0.2253,
+      "total": 49,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 25,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 10,
+      "vol_ratio": 10.32,
+      "stochrsi_k": 77.1,
+      "stochrsi_htf": 88.0,
+      "fib_retr": 0.162,
+      "trend": "range",
+      "pattern": "Double Bottom",
+      "dist_to_res_pct": 146.78,
+      "plan": {
+        "entry": 0.1829665,
+        "sl": 0.15720309000000002,
+        "tp1": 0.556,
+        "tp2": 0.30831699999999995,
+        "sl_pct": -14.08,
+        "tp1_pct": 203.88,
+        "tp2_pct": 68.51,
+        "rr1": 14.48,
+        "rr2": 4.87,
+        "risk_amount": 150.0,
+        "position_size": 1065.27
+      },
+      "notes": {
+        "volume": [
+          "breakout volume 10.32x MA20 + OBV naik"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=77, D=71)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.162) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Double Bottom - neckline tertembus"
+        ]
+      },
+      "quote_volume": 26559854.410396,
+      "change_24h": 43.809
+    },
+    {
+      "symbol": "LINKUSDT",
+      "price": 11.325,
+      "total": 48,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.67 (min 1:2.0)"
+      ],
+      "s_volume": 15,
+      "s_stochrsi": 10,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 0.95,
+      "stochrsi_k": 2.7,
+      "stochrsi_htf": 94.8,
+      "fib_retr": 0.23,
+      "trend": "uptrend",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 3.68,
+      "plan": {
+        "entry": 9.476184,
+        "sl": 8.11754064,
+        "tp1": 11.742250000000002,
+        "tp2": 16.095632,
+        "sl_pct": -14.34,
+        "tp1_pct": 23.91,
+        "tp2_pct": 69.85,
+        "rr1": 1.67,
+        "rr2": 4.87,
+        "risk_amount": 150.0,
+        "position_size": 1046.21
+      },
+      "notes": {
+        "volume": [
+          "volume dry-up saat pullback (koreksi sehat)"
+        ],
+        "stochrsi": [
+          "oversold (3) mulai berbalik, belum cross"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.230) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 11.8"
+        ]
+      },
+      "quote_volume": 35560794.54364,
+      "change_24h": 2.271
+    },
+    {
+      "symbol": "PEPEUSDT",
+      "price": 3.55e-06,
+      "total": 44,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.8 (min 1:2.0)"
+      ],
+      "s_volume": 15,
+      "s_stochrsi": 3,
+      "s_fib": 8,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 0.74,
+      "stochrsi_k": 42.7,
+      "stochrsi_htf": 81.1,
+      "fib_retr": 0.433,
+      "trend": "range",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 2.11,
+      "plan": {
+        "entry": 3.25753e-06,
+        "sl": 3.0535e-06,
+        "tp1": 3.625e-06,
+        "tp2": 5.999940000000001e-06,
+        "sl_pct": -6.26,
+        "tp1_pct": 11.28,
+        "tp2_pct": 84.19,
+        "rr1": 1.8,
+        "rr2": 13.44,
+        "risk_amount": 150.0,
+        "position_size": 2394.89
+      },
+      "notes": {
+        "volume": [
+          "volume dry-up saat pullback (koreksi sehat)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=43, D=50)"
+        ],
+        "fibonacci": [
+          "retracement dangkal (retr 0.433) - trend kuat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 3.82e-06"
+        ]
+      },
+      "quote_volume": 25752605.10714864,
+      "change_24h": 3.79
+    },
+    {
+      "symbol": "UNIUSDT",
+      "price": 5.232,
+      "total": 43,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "StochRSI: Stoch RSI sudah overbought (95) - telat"
+      ],
+      "s_volume": 20,
+      "s_stochrsi": 0,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 1.24,
+      "stochrsi_k": 95.4,
+      "stochrsi_htf": 100.0,
+      "fib_retr": 0.082,
+      "trend": "range",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 6.22,
+      "plan": {
+        "entry": 3.716616,
+        "sl": 3.1234349999999997,
+        "tp1": 5.5573999999999995,
+        "tp2": 7.454768,
+        "sl_pct": -15.96,
+        "tp1_pct": 49.53,
+        "tp2_pct": 100.58,
+        "rr1": 3.1,
+        "rr2": 6.3,
+        "risk_amount": 150.0,
+        "position_size": 939.84
+      },
+      "notes": {
+        "volume": [
+          "volume di atas MA20 (1.24x) & OBV menguat"
+        ],
+        "stochrsi": [
+          "Stoch RSI sudah overbought (95) - telat"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.082) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 5.492"
+        ]
+      },
+      "quote_volume": 38841176.55975,
+      "change_24h": 2.038
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "price": 0.01598,
+      "total": 43,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "StochRSI: Stoch RSI sudah overbought (85) - telat",
+        "R:R ke TP1 hanya 1:1.34 (min 1:2.0)"
+      ],
+      "s_volume": 20,
+      "s_stochrsi": 0,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 1.26,
+      "stochrsi_k": 85.2,
+      "stochrsi_htf": 100.0,
+      "fib_retr": 0.12,
+      "trend": "uptrend",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 0.69,
+      "plan": {
+        "entry": 0.01000201,
+        "sl": 0.005452633434036977,
+        "tp1": 0.01609,
+        "tp2": 0.02602098,
+        "sl_pct": -45.48,
+        "tp1_pct": 60.87,
+        "tp2_pct": 160.16,
+        "rr1": 1.34,
+        "rr2": 3.52,
+        "risk_amount": 150.0,
+        "position_size": 329.78
+      },
+      "notes": {
+        "volume": [
+          "volume di atas MA20 (1.26x) & OBV menguat"
+        ],
+        "stochrsi": [
+          "Stoch RSI sudah overbought (85) - telat"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.120) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 0.01761"
+        ]
+      },
+      "quote_volume": 29045111.884583,
+      "change_24h": 5.479
+    },
+    {
+      "symbol": "ETHUSDT",
+      "price": 2467.65,
+      "total": 42,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 8,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 20,
+      "s_pattern": 6,
+      "vol_ratio": 0.84,
+      "stochrsi_k": 40.9,
+      "stochrsi_htf": 98.0,
+      "fib_retr": 0.093,
+      "trend": "uptrend",
+      "pattern": "Double Bottom",
+      "dist_to_res_pct": 2.73,
+      "plan": {
+        "entry": 1973.51485,
+        "sl": 1825.8156999999999,
+        "tp1": 2534.92,
+        "tp2": 3222.1353000000004,
+        "sl_pct": -7.48,
+        "tp1_pct": 28.45,
+        "tp2_pct": 63.27,
+        "rr1": 3.8,
+        "rr2": 8.45,
+        "risk_amount": 150.0,
+        "position_size": 2004.26
+      },
+      "notes": {
+        "volume": [
+          "volume normal (0.84x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=41, D=49)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.093) - entry telat"
+        ],
+        "sr": [
+          "di zona support kuat (5x sentuhan, flip zone)"
+        ],
+        "pattern": [
+          "Double Bottom - neckline tertembus",
+          "peringatan: Double Top juga terdeteksi"
+        ]
+      },
+      "quote_volume": 599328248.411564,
+      "change_24h": 2.019
+    },
+    {
+      "symbol": "TRUMPUSDT",
+      "price": 2.426,
+      "total": 41,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.08 (min 1:2.0)"
+      ],
+      "s_volume": 5,
+      "s_stochrsi": 3,
+      "s_fib": 15,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 0.53,
+      "stochrsi_k": 57.9,
+      "stochrsi_htf": 94.2,
+      "fib_retr": 0.542,
+      "trend": "range",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 28.15,
+      "plan": {
+        "entry": 2.426,
+        "sl": 1.792390715070877,
+        "tp1": 3.109,
+        "tp2": 5.348000000000001,
+        "sl_pct": -26.12,
+        "tp1_pct": 28.15,
+        "tp2_pct": 120.45,
+        "rr1": 1.08,
+        "rr2": 4.61,
+        "risk_amount": 150.0,
+        "position_size": 574.33
+      },
+      "notes": {
+        "volume": [
+          "volume sepi (0.53x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=58, D=66)"
+        ],
+        "fibonacci": [
+          "golden zone (retr 0.542), tanpa confluence"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 3.068"
+        ]
+      },
+      "quote_volume": 24079652.306508,
+      "change_24h": 0.628
+    },
+    {
+      "symbol": "BTCUSDT",
+      "price": 78581.29,
+      "total": 39,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.97 (min 1:2.0)"
+      ],
+      "s_volume": 8,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 12,
+      "s_pattern": 11,
+      "vol_ratio": 0.87,
+      "stochrsi_k": 54.7,
+      "stochrsi_htf": 99.9,
+      "fib_retr": 0.122,
+      "trend": "range",
+      "pattern": "Ascending Triangle",
+      "dist_to_res_pct": 1.86,
+      "plan": {
+        "entry": 68242.48788,
+        "sl": 62238.7532448,
+        "tp1": 80042.83,
+        "tp2": 96112.29423999999,
+        "sl_pct": -8.8,
+        "tp1_pct": 17.29,
+        "tp2_pct": 40.84,
+        "rr1": 1.97,
+        "rr2": 4.64,
+        "risk_amount": 150.0,
+        "position_size": 1705.0
+      },
+      "notes": {
+        "volume": [
+          "volume normal (0.87x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=55, D=63)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.122) - entry telat"
+        ],
+        "sr": [
+          "dekat support (2.5% di atas)"
+        ],
+        "pattern": [
+          "Ascending Triangle - breakout tapi volume belum konfirmasi"
+        ]
+      },
+      "quote_volume": 1176219035.002239,
+      "change_24h": 1.127
+    },
+    {
+      "symbol": "ARBUSDT",
+      "price": 0.1094,
+      "total": 39,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 20,
+      "s_stochrsi": 8,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 0,
+      "vol_ratio": 2.98,
+      "stochrsi_k": 45.3,
+      "stochrsi_htf": 88.3,
+      "fib_retr": 0.013,
+      "trend": "range",
+      "pattern": null,
+      "dist_to_res_pct": 3.08,
+      "plan": {
+        "entry": 0.08787539999999999,
+        "sl": 0.07814228399999999,
+        "tp1": 0.11276666666666668,
+        "tp2": 0.1342492,
+        "sl_pct": -11.08,
+        "tp1_pct": 28.33,
+        "tp2_pct": 52.77,
+        "rr1": 2.56,
+        "rr2": 4.76,
+        "risk_amount": 150.0,
+        "position_size": 1354.27
+      },
+      "notes": {
+        "volume": [
+          "volume di atas MA20 (2.98x) & OBV menguat"
+        ],
+        "stochrsi": [
+          "cross up dari zona tengah (32)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.013) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "tidak ada pola jelas"
+        ]
+      },
+      "quote_volume": 29742959.85157,
+      "change_24h": 38.19
+    },
+    {
+      "symbol": "SUIUSDT",
+      "price": 0.727,
+      "total": 38,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.86 (min 1:2.0)"
+      ],
+      "s_volume": 8,
+      "s_stochrsi": 12,
+      "s_fib": 12,
+      "s_sr": 6,
+      "s_pattern": 0,
+      "vol_ratio": 1.08,
+      "stochrsi_k": 34.1,
+      "stochrsi_htf": 70.3,
+      "fib_retr": 0.712,
+      "trend": "range",
+      "pattern": null,
+      "dist_to_res_pct": 7.77,
+      "plan": {
+        "entry": 0.727,
+        "sl": 0.6965445959999998,
+        "tp1": 0.7835000000000001,
+        "tp2": 1.1508947999999999,
+        "sl_pct": -4.19,
+        "tp1_pct": 7.77,
+        "tp2_pct": 58.31,
+        "rr1": 1.86,
+        "rr2": 13.92,
+        "risk_amount": 150.0,
+        "position_size": 3580.65
+      },
+      "notes": {
+        "volume": [
+          "volume normal (1.08x MA20)"
+        ],
+        "stochrsi": [
+          "bullish divergence terdeteksi"
+        ],
+        "fibonacci": [
+          "deep retracement (retr 0.712), area 0.786"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "tidak ada pola jelas"
+        ]
+      },
+      "quote_volume": 42342965.26812,
+      "change_24h": 2.379
+    },
+    {
+      "symbol": "BNBUSDT",
+      "price": 691.44,
+      "total": 37,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 5,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 12,
+      "s_pattern": 12,
+      "vol_ratio": 0.62,
+      "stochrsi_k": 33.7,
+      "stochrsi_htf": 93.5,
+      "fib_retr": 0.183,
+      "trend": "uptrend",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 5.55,
+      "plan": {
+        "entry": 620.52403,
+        "sl": 591.0,
+        "tp1": 729.7814285714286,
+        "tp2": 842.7769400000001,
+        "sl_pct": -4.76,
+        "tp1_pct": 17.61,
+        "tp2_pct": 35.82,
+        "rr1": 3.7,
+        "rr2": 7.53,
+        "risk_amount": 150.0,
+        "position_size": 3152.64
+      },
+      "notes": {
+        "volume": [
+          "volume sepi (0.62x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=34, D=42)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.183) - entry telat"
+        ],
+        "sr": [
+          "dekat support (2.4% di atas)"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 704.04"
+        ]
+      },
+      "quote_volume": 60809529.20147,
+      "change_24h": 1.075
+    },
+    {
+      "symbol": "PUMPUSDT",
+      "price": 0.004453,
+      "total": 34,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "R:R ke TP1 hanya 1:1.85 (min 1:2.0)"
+      ],
+      "s_volume": 8,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 0.82,
+      "stochrsi_k": 11.7,
+      "stochrsi_htf": 87.7,
+      "fib_retr": 0.231,
+      "trend": "uptrend",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 8.97,
+      "plan": {
+        "entry": 0.0030455359999999997,
+        "sl": 0.0020682441991161805,
+        "tp1": 0.0048525,
+        "tp2": 0.008101928,
+        "sl_pct": -32.09,
+        "tp1_pct": 59.33,
+        "tp2_pct": 166.03,
+        "rr1": 1.85,
+        "rr2": 5.17,
+        "risk_amount": 150.0,
+        "position_size": 467.45
+      },
+      "notes": {
+        "volume": [
+          "volume normal (0.82x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=12, D=21)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.231) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 0.005128"
+        ]
+      },
+      "quote_volume": 31137390.900131,
+      "change_24h": 2.648
+    },
+    {
+      "symbol": "ENAUSDT",
+      "price": 0.1495,
+      "total": 34,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 5,
+      "s_stochrsi": 3,
+      "s_fib": 8,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 0.51,
+      "stochrsi_k": 48.8,
+      "stochrsi_htf": 90.8,
+      "fib_retr": 0.337,
+      "trend": "uptrend",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 66.49,
+      "plan": {
+        "entry": 0.12282000000000001,
+        "sl": 0.09195899301471219,
+        "tp1": 0.2489,
+        "tp2": 0.26406,
+        "sl_pct": -25.13,
+        "tp1_pct": 102.65,
+        "tp2_pct": 115.0,
+        "rr1": 4.09,
+        "rr2": 4.58,
+        "risk_amount": 150.0,
+        "position_size": 596.97
+      },
+      "notes": {
+        "volume": [
+          "volume sepi (0.51x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=49, D=58)"
+        ],
+        "fibonacci": [
+          "retracement dangkal (retr 0.337) - trend kuat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 0.1662"
+        ]
+      },
+      "quote_volume": 24207155.055282,
+      "change_24h": 1.687
+    },
+    {
+      "symbol": "RLUSDUSDT",
+      "price": 1.0005,
+      "total": 33,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "Fibonacci: struktur swing tidak jelas - tidak bisa tarik Fibonacci",
+        "R:R ke TP1 hanya 1:0.0 (min 1:2.0)"
+      ],
+      "s_volume": 8,
+      "s_stochrsi": 3,
+      "s_fib": 0,
+      "s_sr": 15,
+      "s_pattern": 7,
+      "vol_ratio": 1.31,
+      "stochrsi_k": 77.8,
+      "stochrsi_htf": 11.0,
+      "fib_retr": null,
+      "trend": "downtrend",
+      "pattern": "Double Bottom",
+      "dist_to_res_pct": 0.0,
+      "plan": {
+        "entry": 1.0005,
+        "sl": 0.985394,
+        "tp1": 1.000532142857143,
+        "tp2": 1.0458179999999997,
+        "sl_pct": -1.51,
+        "tp1_pct": 0.0,
+        "tp2_pct": 4.53,
+        "rr1": 0.0,
+        "rr2": 3.0,
+        "risk_amount": 150.0,
+        "position_size": 9934.79
+      },
+      "notes": {
+        "volume": [
+          "volume normal (1.31x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=78, D=68)"
+        ],
+        "fibonacci": [
+          "struktur swing tidak jelas - tidak bisa tarik Fibonacci"
+        ],
+        "sr": [
+          "di zona support kuat (28x sentuhan, flip zone)",
+          "struktur downtrend (LH/LL)"
+        ],
+        "pattern": [
+          "Double Bottom terbentuk, belum konfirmasi neckline"
+        ]
+      },
+      "quote_volume": 95673388.1136,
+      "change_24h": -0.01
+    },
+    {
+      "symbol": "ZECUSDT",
+      "price": 848.1,
+      "total": 32,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 8,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 10,
+      "vol_ratio": 1.01,
+      "stochrsi_k": 59.4,
+      "stochrsi_htf": 96.4,
+      "fib_retr": 0.063,
+      "trend": "uptrend",
+      "pattern": "Double Bottom",
+      "dist_to_res_pct": null,
+      "plan": {
+        "entry": 531.58825,
+        "sl": 458.98045,
+        "tp1": 1061.974,
+        "tp2": 1282.8085,
+        "sl_pct": -13.66,
+        "tp1_pct": 99.77,
+        "tp2_pct": 141.32,
+        "rr1": 7.3,
+        "rr2": 10.35,
+        "risk_amount": 150.0,
+        "position_size": 1098.2
+      },
+      "notes": {
+        "volume": [
+          "volume normal (1.01x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=59, D=61)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.063) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Double Bottom - neckline tertembus"
+        ]
+      },
+      "quote_volume": 168864076.29075,
+      "change_24h": 2.281
+    },
+    {
+      "symbol": "SOLUSDT",
+      "price": 103.06,
+      "total": 31,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 5,
+      "s_stochrsi": 3,
+      "s_fib": 5,
+      "s_sr": 6,
+      "s_pattern": 12,
+      "vol_ratio": 0.73,
+      "stochrsi_k": 51.7,
+      "stochrsi_htf": 100.0,
+      "fib_retr": 0.149,
+      "trend": "range",
+      "pattern": "Bull Flag",
+      "dist_to_res_pct": 1.2,
+      "plan": {
+        "entry": 82.38727,
+        "sl": 72.98849999999999,
+        "tp1": 104.295,
+        "tp2": 141.79046,
+        "sl_pct": -11.41,
+        "tp1_pct": 26.59,
+        "tp2_pct": 72.1,
+        "rr1": 2.33,
+        "rr2": 6.32,
+        "risk_amount": 150.0,
+        "position_size": 1314.86
+      },
+      "notes": {
+        "volume": [
+          "volume sepi (0.73x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=52, D=64)"
+        ],
+        "fibonacci": [
+          "harga dekat swing high (retr 0.149) - entry telat"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "Bull Flag terbentuk, menunggu breakout di 107.48"
+        ]
+      },
+      "quote_volume": 217810669.51253,
+      "change_24h": 1.266
+    },
+    {
+      "symbol": "BMTUSDT",
+      "price": 0.02006,
+      "total": 26,
+      "grade": "C",
+      "vetoed": false,
+      "veto_reasons": [],
+      "s_volume": 8,
+      "s_stochrsi": 3,
+      "s_fib": 9,
+      "s_sr": 6,
+      "s_pattern": 0,
+      "vol_ratio": 5.75,
+      "stochrsi_k": 35.4,
+      "stochrsi_htf": 57.7,
+      "fib_retr": 0.719,
+      "trend": "range",
+      "pattern": null,
+      "dist_to_res_pct": 45.31,
+      "plan": {
+        "entry": 0.02006,
+        "sl": 0.017697596399999998,
+        "tp1": 0.029150000000000002,
+        "tp2": 0.06384332000000001,
+        "sl_pct": -11.78,
+        "tp1_pct": 45.31,
+        "tp2_pct": 218.26,
+        "rr1": 3.85,
+        "rr2": 18.53,
+        "risk_amount": 150.0,
+        "position_size": 1273.7
+      },
+      "notes": {
+        "volume": [
+          "volume normal (5.75x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=35, D=48)"
+        ],
+        "fibonacci": [
+          "deep retracement (retr 0.719), area 0.786"
+        ],
+        "sr": [
+          "di tengah range, tidak dekat level"
+        ],
+        "pattern": [
+          "tidak ada pola jelas"
+        ]
+      },
+      "quote_volume": 105030026.615823,
+      "change_24h": -4.917
+    },
+    {
+      "symbol": "UUSDT",
+      "price": 0.9998,
+      "total": 18,
+      "grade": "C",
+      "vetoed": true,
+      "veto_reasons": [
+        "Fibonacci: struktur swing tidak jelas - tidak bisa tarik Fibonacci",
+        "R:R ke TP1 hanya 1:0.05 (min 1:2.0)"
+      ],
+      "s_volume": 8,
+      "s_stochrsi": 3,
+      "s_fib": 0,
+      "s_sr": 0,
+      "s_pattern": 7,
+      "vol_ratio": 1.01,
+      "stochrsi_k": 70.6,
+      "stochrsi_htf": 5.2,
+      "fib_retr": null,
+      "trend": "downtrend",
+      "pattern": "Double Bottom",
+      "dist_to_res_pct": 0.09,
+      "plan": {
+        "entry": 0.9998,
+        "sl": 0.984212,
+        "tp1": 1.000656,
+        "tp2": 1.046564,
+        "sl_pct": -1.56,
+        "tp1_pct": 0.09,
+        "tp2_pct": 4.68,
+        "rr1": 0.05,
+        "rr2": 3.0,
+        "risk_amount": 150.0,
+        "position_size": 9620.86
+      },
+      "notes": {
+        "volume": [
+          "volume normal (1.01x MA20)"
+        ],
+        "stochrsi": [
+          "tidak ada sinyal (K=71, D=51)"
+        ],
+        "fibonacci": [
+          "struktur swing tidak jelas - tidak bisa tarik Fibonacci"
+        ],
+        "sr": [
+          "tidak ada support jelas di bawah - risiko tinggi",
+          "struktur downtrend (LH/LL)"
+        ],
+        "pattern": [
+          "Double Bottom terbentuk, belum konfirmasi neckline"
+        ]
+      },
+      "quote_volume": 27376849.4544,
+      "change_24h": 0.0
+    }
+  ]
+}
