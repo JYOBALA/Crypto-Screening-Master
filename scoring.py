@@ -371,17 +371,39 @@ def build_trade_plan(df, fib_res, sr_res, pat_res, capital, risk_pct, size_mult)
     if (entry - sl) / entry > 0.20:                      # SL terlalu jauh -> pakai ATR
         sl = entry - 2.0 * a
 
-    # Take profit
-    tp1 = None
-    if sr_res.get("resistance"):
-        tp1 = sr_res["resistance"]["level"]
-    if fib and (tp1 is None or tp1 <= entry * 1.02):
-        tp1 = fib["ext_1.272"]
-    if tp1 is None:
-        tp1 = entry + 2 * (entry - sl)
-    tp2 = fib["ext_1.618"] if fib else entry + 3 * (entry - sl)
+    # ── Take profit ─────────────────────────────────────────────────────────
+    # TP1 = rintangan PERTAMA di atas entry; TP2 = target berikutnya yang harus
+    # LEBIH JAUH dari TP1.
+    #
+    # Bug lama: TP1 dan TP2 dihitung dari sumber berbeda tanpa syarat urutan.
+    # TP1 memakai resistance horizontal terdekat (dari klaster pivot historis),
+    # sementara TP2 memakai fib ext_1.618 yang di-anchor ke impuls naik TERAKHIR
+    # (swing low -> swing high). Kalau impuls terakhir kecil, ext_1.618 =
+    # high + 0.618*(high-low) mendarat DI BAWAH resistance historis di atasnya —
+    # keduanya bukan level rusak, cuma dua ukuran berbeda yang tak pernah
+    # direkonsiliasi. Akibatnya TP2 <= TP1 (23 sinyal di backtest, mis. NEARUSDT).
+    #
+    # Perbaikan: kumpulkan semua level di atas entry (resistance, fib ext 1.272 &
+    # 1.618, target pola), urutkan, ambil yang terdekat sebagai TP1 dan yang
+    # berikutnya sebagai TP2. Urutan TP2 > TP1 dijamin secara struktural.
+    res_level = sr_res["resistance"]["level"] if sr_res.get("resistance") else None
+    fib_e1 = fib["ext_1.272"] if fib else None
+    fib_e2 = fib["ext_1.618"] if fib else None
+    pat_target = None
     if pat_res.get("pattern_obj") and pat_res["pattern_obj"].get("target"):
-        tp2 = max(tp2, pat_res["pattern_obj"]["target"])
+        pat_target = pat_res["pattern_obj"]["target"]
+
+    up_levels = sorted(x for x in (res_level, fib_e1, fib_e2, pat_target)
+                       if x is not None and x > entry * 1.02)
+    if up_levels:
+        tp1 = up_levels[0]
+        beyond = [x for x in up_levels if x > tp1 * 1.01]
+        tp2 = beyond[0] if beyond else tp1 + (tp1 - entry)
+    else:
+        tp1 = entry + 2 * (entry - sl)
+        tp2 = entry + 3.5 * (entry - sl)
+    # jarak minimal TP1->TP2 supaya leg kedua bermakna (>= 0.5x jarak entry->TP1)
+    tp2 = max(tp2, tp1 + 0.5 * (tp1 - entry))
 
     risk_per_unit = entry - sl
     rr1 = (tp1 - entry) / risk_per_unit if risk_per_unit > 0 else 0
@@ -430,7 +452,7 @@ def evaluate(symbol, df_bias, df_htf, regime, cfg) -> dict | None:
 
     if plan["rr1"] < cfg["min_rr"]:
         vetoes.append(f"R:R ke TP1 hanya 1:{plan['rr1']} (min 1:{cfg['min_rr']})")
-    if plan["rr1"] > cfg.get("max_plausible_rr", 15.0):
+    if plan["rr1"] > cfg.get("max_plausible_rr", 8.0):
         vetoes.append(f"R:R 1:{plan['rr1']} tidak masuk akal - level swing/support "
                       "kemungkinan rusak, periksa chart manual")
     if st["k"] is not None and st["k"] > 80:

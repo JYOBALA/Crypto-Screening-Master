@@ -72,7 +72,7 @@ DEFAULT_CFG = {
     "capital": 10_000,
     "risk_pct": 1.5,
     "min_rr": 2.0,
-    "max_plausible_rr": 15.0,   # di atas ini = level rusak, bukan peluang
+    "max_plausible_rr": 8.0,    # di atas ini = level rusak, bukan peluang (dasar: backtest, lihat CLAUDE.md)
     "min_score": 70,
     "max_open_positions": 5,
     # Mode GEM (deteksi akumulasi)
@@ -593,6 +593,7 @@ def selftest():
             p = r["plan"]
             assert p["sl"] < p["entry"], "SL harus di bawah entry"
             assert p["tp1"] > p["entry"], "TP1 harus di atas entry"
+            assert p["tp2"] > p["tp1"], "TP2 harus di atas TP1"
             print(f"  ✓ {scen:<18} seed={seed}  regime={reg['status']:<6} "
                   f"skor={r['total']:>3} {r['grade']:<2} veto={r['vetoed']} "
                   f"RR={p['rr1']:.2f} komponen={comp}")

@@ -56,7 +56,15 @@ Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` 
 
 Grade: A+ ≥80 · A 70–79 · B 60–69 · C <60
 
-**Veto rules** (batal otomatis berapapun skornya): BTC status MERAH · ada komponen bernilai 0 · retracement > 0.786 · Stoch RSI daily > 80 · R:R ke TP1 < minimum.
+**Veto rules** (batal otomatis berapapun skornya): BTC status MERAH · ada komponen bernilai 0 · retracement > 0.786 · Stoch RSI daily > 80 · R:R ke TP1 < minimum · **R:R ke TP1 > `max_plausible_rr` (8.0)**.
+
+**`max_plausible_rr` = 8.0 — dasarnya data backtest v1, bukan tebakan.** Ekspektasi per
+pita R:R rencana (357 trade, `backtest_trades.csv`): pita 0–3 → **+0.326 R** (win 36%),
+pita 3–5 → +0.303 R, pita 5–8 → **+0.025 R** (win 20%), pita >8 → +0.249 R tapi itu
+sepenuhnya efek fat tail (beberapa winner besar; win rate tetap 22%). R:R lebar tidak
+menambah edge — ia menurunkan win rate tanpa kompensasi ekspektasi yang andal. Ambang
+lama 15.0 praktis tidak pernah memotong apa pun. **Jangan naikkan lagi tanpa data
+backtest baru yang membantahnya.**
 
 ## Mode GEM — sistem skor terpisah (accumulation.py)
 
@@ -78,7 +86,7 @@ Veto gem: UTAD terdeteksi (distribusi) · tidak ada basis · sudah naik >60% dal
 
 ## Aturan penting saat memodifikasi
 
-1. **Selalu jalankan `python3 screener.py --selftest` setelah mengubah `scoring.py`, `indicators.py`, atau `accumulation.py`.** Selftest mencakup skema Wyckoff sintetis dan memverifikasi bahwa Phase C/D terdeteksi benar serta skor Wyckoff mengalahkan data trending acak. Selftest berjalan tanpa internet dan memvalidasi konsistensi skor, rentang nilai, dan validitas rencana trade (SL < entry < TP1).
+1. **Selalu jalankan `python3 screener.py --selftest` setelah mengubah `scoring.py`, `indicators.py`, atau `accumulation.py`.** Selftest mencakup skema Wyckoff sintetis dan memverifikasi bahwa Phase C/D terdeteksi benar serta skor Wyckoff mengalahkan data trending acak. Selftest berjalan tanpa internet dan memvalidasi konsistensi skor, rentang nilai, dan validitas rencana trade (SL < entry < TP1 < TP2).
 2. **Selalu buang candle berjalan.** `fetch_klines` sudah melakukan `df.iloc[:-1]`. Analisa hanya pada candle yang sudah close — ini aturan inti SOP.
 3. **Stoch RSI hanya untuk timing, bukan penentu arah.** Jangan pernah menambah logika yang memberi skor tinggi hanya karena oversold tanpa konteks struktur.
 4. **Jangan tambahkan fungsi order/trading.** Proyek ini sengaja read-only.
@@ -103,7 +111,8 @@ Riwayat ini penting — semuanya lolos dari selftest dan baru ketahuan dari data
 | Bug | Gejala | Perbaikan |
 |---|---|---|
 | Swing high basi | `fib_retr` NEGATIF, R:R absurd (1:66) | `last_impulse_swing()` merentangkan swing high ke high tertinggi sejak pivot |
-| Tidak ada batas atas R:R | R:R 1:66 lolos filter | Veto `max_plausible_rr` (default 15) |
+| Tidak ada batas atas R:R | R:R 1:66 lolos filter | Veto `max_plausible_rr` (15 → **8**, dasar: backtest v1) |
+| TP2 ≤ TP1 di rencana | 23 sinyal (mis. NEARUSDT: tp1 1.4405, tp2 1.341) | `build_trade_plan()`: kumpulkan semua level di atas entry (resistance/fib ext/target pola), urut, TP1 = terdekat, TP2 = berikutnya. Urutan TP2 > TP1 dijamin. Akar: fib ext_1.618 di-anchor ke impuls terakhir; kalau impuls kecil, ia mendarat di bawah resistance historis di atasnya |
 | Support referensi spring | Spring tidak pernah terdeteksi | Referensi dari 60% awal basis, bukan dasar seluruh range |
 | Jendela SC terlalu sempit | Selling Climax terlewat | Diperluas 40 bar ke belakang dari awal range |
 | Stop loss Phase D | Risiko konyol lebar | Phase C → bawah spring; Phase D → bawah LPS; breakout → bawah kontraksi terakhir |
