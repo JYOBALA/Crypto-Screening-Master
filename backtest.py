@@ -5,6 +5,11 @@ backtest.py — Walk-forward backtest sistem skor 100 poin (mode daily/weekly).
 Alat ukur, bukan alat untuk membuat angkanya bagus. Tidak menyetel scoring.py,
 indicators.py, atau accumulation.py — hanya membaca lewat evaluate().
 
+Semua sinyal non-veto direkam (termasuk grade C < 60 yang tak pernah ditampilkan
+screener) supaya pertanyaan "apakah skor lebih tinggi = ekspektasi lebih tinggi"
+bisa dijawab lintas seluruh rentang skor. Metrik agregat dilaporkan dua kali:
+seluruh sinyal, dan hanya yang skornya >= min_score (yang benar-benar user ambil).
+
     python backtest.py
     python backtest.py --symbols BTCUSDT,ETHUSDT --workers 4
 
@@ -50,6 +55,7 @@ CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 
 # ── Parameter tetap sesuai spesifikasi (bukan parameter yang "dioprek" agar
 #    hasil terlihat bagus — ini definisi mekanik backtest itu sendiri) ──
+MIN_BAND_SAMPLE = 30    # di bawah ini per pita skor: hasil tidak boleh diklaim prediktif
 WARMUP_BARS = 250       # lewati N bar pertama (butuh warm-up MA/pivot)
 ENTRY_WINDOW = 10       # batalkan setup kalau entry tak tersentuh dalam N bar
 MAX_HOLD = 30           # timeout posisi (bar dihitung sejak fill, bukan sejak sinyal)
@@ -90,7 +96,7 @@ def load_universe(symbols_filter: list[str] | None = None) -> dict[str, pd.DataF
 # ─────────────────────────────────────────────────────────────
 
 def build_btc_regime_lookup(btc_df: pd.DataFrame):
-    dates = btc_df.index.values
+    dates = btc_df.index.asi8                    # ns sejak epoch, hindari warning tz np.datetime64
     regimes: list[dict | None] = [None] * len(btc_df)
     for t in range(BTC_REGIME_WARM, len(btc_df)):
         regimes[t] = scoring.btc_regime(btc_df.iloc[:t + 1])
@@ -98,7 +104,7 @@ def build_btc_regime_lookup(btc_df: pd.DataFrame):
 
 
 def regime_at(btc_dates, btc_regimes, date) -> dict | None:
-    idx = int(np.searchsorted(btc_dates, np.datetime64(date), side="right")) - 1
+    idx = int(np.searchsorted(btc_dates, pd.Timestamp(date).value, side="right")) - 1
     if idx < BTC_REGIME_WARM or idx >= len(btc_regimes):
         return None
     return btc_regimes[idx]
@@ -450,18 +456,29 @@ def main():
     print(f"  Terisi (filled)       : {len(filled)}")
     print(f"  Batal (entry tak kena): {cancelled_n}")
 
-    m_sys = compute_metrics(filled) if not filled.empty else {"n": 0}
-    m_base = compute_metrics(baseline_df) if not baseline_df.empty else {"n": 0}
-    print_metrics_block("SISTEM SKOR (evaluate)", m_sys)
-    print_metrics_block("BASELINE ACAK (SL/TP & exit sama)", m_base)
+    min_score = cfg["min_score"]
+    tradeable = filled[filled["total_score"] >= min_score].copy() if not filled.empty else filled
 
-    if m_sys["n"] and m_base["n"]:
-        beats = m_sys["expectancy_r"] > m_base["expectancy_r"]
-        print(f"\n  >> Sistem {'MENGALAHKAN' if beats else 'TIDAK mengalahkan'} baseline acak "
-              f"({m_sys['expectancy_r']:+.3f} R vs {m_base['expectancy_r']:+.3f} R).")
+    m_sys = compute_metrics(filled) if not filled.empty else {"n": 0}
+    m_trade = compute_metrics(tradeable) if not tradeable.empty else {"n": 0}
+    m_base = compute_metrics(baseline_df) if not baseline_df.empty else {"n": 0}
+    print_metrics_block("SEMUA SINYAL NON-VETO (evaluate, termasuk grade C < 60)", m_sys)
+    print_metrics_block(f"HANYA YANG DIREKOMENDASIKAN (skor >= min_score {min_score})", m_trade)
+    print_metrics_block("BASELINE ACAK (SL/TP & exit sama)", m_base)
+    print("\n  Catatan: screener.py hanya menampilkan skor >= min_score. Blok 'SEMUA SINYAL'\n"
+          "  di atas mencakup setup yang TIDAK akan pernah user ambil — dipakai hanya untuk\n"
+          "  menjawab pertanyaan monotonisitas pita skor di bawah.")
+
+    if m_trade["n"] and m_base["n"]:
+        beats = m_trade["expectancy_r"] > m_base["expectancy_r"]
+        print(f"\n  >> Setup yang direkomendasikan {'MENGALAHKAN' if beats else 'TIDAK mengalahkan'} "
+              f"baseline acak ({m_trade['expectancy_r']:+.3f} R vs {m_base['expectancy_r']:+.3f} R).")
         if not beats:
             print("     Ini temuan penting — skor tidak menambah edge dibanding entry acak "
                   "dengan risk management yang sama.")
+        if m_trade["n"] < MIN_BAND_SAMPLE:
+            print(f"     (Hanya {m_trade['n']} trade direkomendasikan — di bawah {MIN_BAND_SAMPLE}, "
+                  "belum bisa disebut konklusif.)")
 
     print("\n" + line)
     print("  PECAHAN PER PITA SKOR (pertanyaan utama: apakah monoton naik?)")
@@ -475,14 +492,22 @@ def main():
             print(f"  {r['pita']:<8}{r['n']:>6}{wr:>12}{ex:>14}")
 
         main_bands = band[band["pita"].isin(["60-69", "70-79", "80-89", "90+"])]
-        exps = [e for e in main_bands["expectancy_r"] if e is not None]
+        pairs = [(r["pita"], r["expectancy_r"], r["n"]) for _, r in main_bands.iterrows()
+                 if r["expectancy_r"] is not None]
+        thin = [p[0] for p in pairs if p[2] < MIN_BAND_SAMPLE]
+        exps = [p[1] for p in pairs]
         monotonic = all(exps[i] <= exps[i + 1] for i in range(len(exps) - 1)) if len(exps) >= 2 else None
+
+        if thin:
+            print(f"\n  PERINGATAN SAMPEL: pita {', '.join(thin)} punya < {MIN_BAND_SAMPLE} trade. "
+                  "Angka win rate/ekspektasi di pita itu TIDAK cukup untuk diklaim prediktif.")
         if monotonic is None:
-            print("\n  Data tidak cukup di seluruh pita untuk menilai monotonisitas.")
+            print("  Data tidak cukup di seluruh pita untuk menilai monotonisitas.")
         elif monotonic:
-            print("\n  Ekspektasi NAIK MONOTON seiring skor lebih tinggi — konsisten dengan desain sistem.")
+            print("  Ekspektasi NAIK MONOTON seiring skor lebih tinggi — konsisten dengan desain sistem"
+                  + (", TAPI lihat peringatan sampel di atas." if thin else "."))
         else:
-            print("\n  TIDAK MONOTON — skor lebih tinggi TIDAK selalu berarti ekspektasi lebih tinggi. "
+            print("  TIDAK MONOTON — skor lebih tinggi TIDAK selalu berarti ekspektasi lebih tinggi. "
                   "Lihat tabel di atas.")
     else:
         print("  Tidak ada trade terisi untuk dianalisa.")
@@ -497,8 +522,46 @@ def main():
             cr = "-" if r["corr_pnl_r"] is None else f"{r['corr_pnl_r']:+.3f}"
             cw = "-" if r["corr_win"] is None else f"{r['corr_win']:+.3f}"
             print(f"  {r['komponen']:<14}{cr:>12}{cw:>14}")
+        print(f"\n  (n = {len(filled)} trade. Korelasi |r| < ~0.1 praktis nol; "
+              "komponen dengan varian rendah — banyak trade berskor sama — tidak akan "
+              "menunjukkan korelasi walau sebenarnya berguna.)")
+
+        print("\n  SKOR TOTAL vs HASIL (jawaban langsung 'skor tinggi = ekspektasi tinggi?'):")
+        if filled["total_score"].nunique() >= 2:
+            pear = float(filled["total_score"].corr(filled["pnl_r"]))
+            spear = float(filled["total_score"].corr(filled["pnl_r"], method="spearman"))
+            print(f"    Pearson  skor vs R : {pear:+.3f}")
+            print(f"    Spearman skor vs R : {spear:+.3f}  (peringkat — lebih tahan outlier)")
+            if abs(pear) < 0.1 and abs(spear) < 0.1:
+                print("    -> Praktis NOL. Skor total tidak memisahkan trade menang dari kalah "
+                      "di data ini.")
     else:
         print("  Tidak ada trade terisi untuk dianalisa.")
+
+    print("\n" + line)
+    print("  KETAHANAN — apakah ekspektasi bergantung pada segelintir trade?")
+    print(line)
+    if not filled.empty and len(filled) > 10:
+        k = 5
+        srt = filled["pnl_r"].sort_values(ascending=False)
+        top_sum = float(srt.head(k).sum())
+        tot_sum = float(filled["pnl_r"].sum())
+        rest_mean = (tot_sum - top_sum) / (len(filled) - k)
+        share = (top_sum / tot_sum) if tot_sum != 0 else float("nan")
+        print(f"  Total P&L                : {tot_sum:+.1f} R dari {len(filled)} trade")
+        print(f"  Kontribusi {k} winner teratas: {top_sum:+.1f} R ({share*100:.0f}% dari total)")
+        base_note = f"  (baseline acak: {m_base['expectancy_r']:+.3f} R)" if m_base["n"] else ""
+        print(f"  Ekspektasi tanpa {k} itu    : {rest_mean:+.3f} R/trade{base_note}")
+        if m_base["n"] and abs(rest_mean - m_base["expectancy_r"]) < 0.05:
+            print("  -> Tanpa tail itu, sistem = baseline acak. 'Edge' bertumpu pada fat tail, "
+                  "bukan pada seleksi skor.")
+        n_wide = int((filled["plan_rr1"] > 8).sum())
+        n_badtp = int((filled["plan_tp1"] >= filled["plan_tp2"]).sum())
+        print(f"\n  R:R rencana > 1:8        : {n_wide}/{len(filled)} ({n_wide/len(filled)*100:.0f}%) "
+              "— rasio selebar ini biasanya berarti level swing/support rusak (lihat riwayat bug).")
+        if n_badtp:
+            print(f"  Rencana dgn TP1 >= TP2   : {n_badtp} — inkonsistensi build_trade_plan(), "
+                  "laporkan (backtest tidak memperbaiki scoring.py).")
 
     print("\n" + line)
     print(f"  Diekspor: {csv_path}")
