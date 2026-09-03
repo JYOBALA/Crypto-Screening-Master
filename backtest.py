@@ -205,7 +205,27 @@ def cost_adjusted_pnl_r(entry: float, sl: float, legs: list) -> float:
 
 # ─────────────────────────────────────────────────────────────
 # Walk-forward per simbol (sistem skor asli)
+#
+# Pekerjaan ini CPU-bound (evaluate() penuh tiap bar). Dengan ratusan simbol,
+# thread tidak menolong (GIL) — pakai ProcessPoolExecutor. Data regime BTC yang
+# besar dibagikan sekali lewat initializer, bukan di-pickle ulang tiap task.
 # ─────────────────────────────────────────────────────────────
+
+_G_BTC_DATES = None
+_G_BTC_REGIMES = None
+_G_CFG = None
+
+
+def _pool_init(btc_dates, btc_regimes, cfg):
+    global _G_BTC_DATES, _G_BTC_REGIMES, _G_CFG
+    _G_BTC_DATES, _G_BTC_REGIMES, _G_CFG = btc_dates, btc_regimes, cfg
+
+
+def _bt_one(item: tuple[str, pd.DataFrame]) -> tuple[str, list[dict], list[str]]:
+    sym, df = item
+    rows, errors = backtest_symbol(sym, df, _G_BTC_DATES, _G_BTC_REGIMES, _G_CFG)
+    return sym, rows, errors
+
 
 def backtest_symbol(symbol: str, df: pd.DataFrame, btc_dates, btc_regimes,
                     cfg: dict) -> tuple[list[dict], list[str]]:
@@ -435,7 +455,10 @@ def main():
     ap = argparse.ArgumentParser(description="Backtest walk-forward sistem skor (tanpa lookahead)")
     ap.add_argument("--symbols", default=None,
                     help="Batasi ke simbol tertentu, dipisah koma (mis. BTCUSDT,ETHUSDT)")
-    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 4) - 1))
+    ap.add_argument("--threads", action="store_true",
+                    help="Pakai thread, bukan proses (lebih lambat untuk universe besar; "
+                         "berguna untuk debug/traceback penuh)")
     ap.add_argument("--baseline-seed", type=int, default=42)
     ap.add_argument("--outdir", default=".")
     ap.add_argument("--history", action="store_true",
@@ -461,20 +484,24 @@ def main():
 
     cfg = dict(scr.DEFAULT_CFG)          # TIDAK diubah — ukur apa adanya
 
-    print(f"-> Menjalankan backtest walk-forward ({args.workers} worker) ...", flush=True)
+    kind = "thread" if args.threads else "proses"
+    print(f"-> Menjalankan backtest walk-forward ({args.workers} {kind}) ...", flush=True)
     all_rows: list[dict] = []
     all_errors: list[str] = []
     t_run = time.time()
-    with cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futs = {ex.submit(backtest_symbol, sym, df, btc_dates, btc_regimes, cfg): sym
-                for sym, df in universe.items()}
-        for i, fut in enumerate(cf.as_completed(futs), 1):
-            sym = futs[fut]
-            rows, errors = fut.result()
+    items = list(universe.items())
+    if args.threads:
+        pool = cf.ThreadPoolExecutor(max_workers=args.workers)
+        _pool_init(btc_dates, btc_regimes, cfg)
+    else:
+        pool = cf.ProcessPoolExecutor(max_workers=args.workers, initializer=_pool_init,
+                                      initargs=(btc_dates, btc_regimes, cfg))
+    with pool as ex:
+        for i, (sym, rows, errors) in enumerate(ex.map(_bt_one, items), 1):
             all_rows.extend(rows)
             all_errors.extend(errors)
-            if i % 10 == 0 or i == len(universe):
-                print(f"   {_eta(i, len(universe), t_run)}  ({sym}: {len(rows)} sinyal)", flush=True)
+            if i % 10 == 0 or i == len(items):
+                print(f"   {_eta(i, len(items), t_run)}  ({sym}: {len(rows)} sinyal)", flush=True)
 
     trades = pd.DataFrame(all_rows)
     if all_errors:
