@@ -118,18 +118,29 @@ def load_universe(symbols_filter: list[str] | None = None,
 # ─────────────────────────────────────────────────────────────
 
 def build_btc_regime_lookup(btc_df: pd.DataFrame):
-    dates = btc_df.index.asi8                    # ns sejak epoch, hindari warning tz np.datetime64
+    # Pakai DatetimeIndex apa adanya untuk pencarian — JANGAN ubah ke int epoch.
+    # Bug lama: `.asi8` mengembalikan int dalam satuan resolusi index (parquet
+    # menyimpan datetime64[ms], jadi milidetik), sedangkan `pd.Timestamp.value`
+    # selalu NANOdetik. searchsorted membandingkan ms vs ns -> nilai ns jauh
+    # lebih besar dari semua entri -> selalu mengembalikan bar TERAKHIR (regime
+    # masa kini) untuk SETIAP tanggal. Akibatnya seluruh backtest memakai regime
+    # BTC 2026 untuk bar 2021-2025 (veto MERAH tak pernah aktif, split bull/bear
+    # tak berarti). DatetimeIndex.searchsorted menangani tz + resolusi sendiri.
+    idx = btc_df.index
     regimes: list[dict | None] = [None] * len(btc_df)
     for t in range(BTC_REGIME_WARM, len(btc_df)):
         regimes[t] = scoring.btc_regime(btc_df.iloc[:t + 1])
-    return dates, regimes
+    return idx, regimes
 
 
-def regime_at(btc_dates, btc_regimes, date) -> dict | None:
-    idx = int(np.searchsorted(btc_dates, pd.Timestamp(date).value, side="right")) - 1
-    if idx < BTC_REGIME_WARM or idx >= len(btc_regimes):
+def regime_at(btc_index, btc_regimes, date) -> dict | None:
+    ts = pd.Timestamp(date)
+    if ts.tz is None and btc_index.tz is not None:
+        ts = ts.tz_localize(btc_index.tz)
+    pos = int(btc_index.searchsorted(ts, side="right")) - 1
+    if pos < BTC_REGIME_WARM or pos >= len(btc_regimes):
         return None
-    return btc_regimes[idx]
+    return btc_regimes[pos]
 
 
 # ─────────────────────────────────────────────────────────────
@@ -211,23 +222,23 @@ def cost_adjusted_pnl_r(entry: float, sl: float, legs: list) -> float:
 # besar dibagikan sekali lewat initializer, bukan di-pickle ulang tiap task.
 # ─────────────────────────────────────────────────────────────
 
-_G_BTC_DATES = None
+_G_BTC_INDEX = None
 _G_BTC_REGIMES = None
 _G_CFG = None
 
 
-def _pool_init(btc_dates, btc_regimes, cfg):
-    global _G_BTC_DATES, _G_BTC_REGIMES, _G_CFG
-    _G_BTC_DATES, _G_BTC_REGIMES, _G_CFG = btc_dates, btc_regimes, cfg
+def _pool_init(btc_index, btc_regimes, cfg):
+    global _G_BTC_INDEX, _G_BTC_REGIMES, _G_CFG
+    _G_BTC_INDEX, _G_BTC_REGIMES, _G_CFG = btc_index, btc_regimes, cfg
 
 
 def _bt_one(item: tuple[str, pd.DataFrame]) -> tuple[str, list[dict], list[str]]:
     sym, df = item
-    rows, errors = backtest_symbol(sym, df, _G_BTC_DATES, _G_BTC_REGIMES, _G_CFG)
+    rows, errors = backtest_symbol(sym, df, _G_BTC_INDEX, _G_BTC_REGIMES, _G_CFG)
     return sym, rows, errors
 
 
-def backtest_symbol(symbol: str, df: pd.DataFrame, btc_dates, btc_regimes,
+def backtest_symbol(symbol: str, df: pd.DataFrame, btc_index, btc_regimes,
                     cfg: dict) -> tuple[list[dict], list[str]]:
     rows: list[dict] = []
     errors: list[str] = []
@@ -236,7 +247,7 @@ def backtest_symbol(symbol: str, df: pd.DataFrame, btc_dates, btc_regimes,
     while t <= n - 1 - MIN_FORWARD:
         bias = df.iloc[:t + 1]                      # ATURAN 1: potongan asli sampai bar t
         date_t = df.index[t]
-        regime = regime_at(btc_dates, btc_regimes, date_t)   # ATURAN 2
+        regime = regime_at(btc_index, btc_regimes, date_t)   # ATURAN 2
         if regime is None:
             t += 1
             continue
@@ -480,7 +491,12 @@ def main():
     print(f"   {len(universe)} simbol dimuat: {', '.join(sorted(universe))}")
 
     print("-> Membangun regime BTC walk-forward (sekali, dipakai semua simbol) ...", flush=True)
-    btc_dates, btc_regimes = build_btc_regime_lookup(universe["BTCUSDT"])
+    btc_index, btc_regimes = build_btc_regime_lookup(universe["BTCUSDT"])
+    _rdist = pd.Series([r["status"] for r in btc_regimes if r]).value_counts()
+    print(f"   Sebaran regime BTC sepanjang sejarah: {_rdist.to_dict()}")
+    if btc_index[-1].year - btc_index[BTC_REGIME_WARM].year >= 2 and len(_rdist) < 2:
+        raise SystemExit("Regime BTC degenerate (satu status untuk sejarah bertahun-tahun) "
+                         "— lookup tanggal kemungkinan rusak. Batalkan, periksa regime_at().")
 
     cfg = dict(scr.DEFAULT_CFG)          # TIDAK diubah — ukur apa adanya
 
@@ -492,10 +508,10 @@ def main():
     items = list(universe.items())
     if args.threads:
         pool = cf.ThreadPoolExecutor(max_workers=args.workers)
-        _pool_init(btc_dates, btc_regimes, cfg)
+        _pool_init(btc_index, btc_regimes, cfg)
     else:
         pool = cf.ProcessPoolExecutor(max_workers=args.workers, initializer=_pool_init,
-                                      initargs=(btc_dates, btc_regimes, cfg))
+                                      initargs=(btc_index, btc_regimes, cfg))
     with pool as ex:
         for i, (sym, rows, errors) in enumerate(ex.map(_bt_one, items), 1):
             all_rows.extend(rows)

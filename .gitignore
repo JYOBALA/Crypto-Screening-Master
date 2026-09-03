@@ -8,3 +8,7 @@ __pycache__/
 # Hasil screening JSON (besar). CSV SENGAJA di-commit —
 # nanti jadi bahan backtest untuk menyetel bobot skor.
 *.json
+
+# Scratch / artefak run (jangan commit)
+scratch_*
+backtest_trades_*.csv
