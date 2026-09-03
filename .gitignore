@@ -1,5 +1,7 @@
 # Cache data harga (di-regenerate otomatis tiap hari)
 .cache/
+# Arsip sejarah panjang untuk backtest (dibuat fetch_history.py, besar)
+.cache_history/
 __pycache__/
 *.pyc
 

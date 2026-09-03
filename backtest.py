@@ -52,6 +52,7 @@ def _force_utf8() -> None:
 _force_utf8()
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+HIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache_history")
 
 # ── Parameter tetap sesuai spesifikasi (bukan parameter yang "dioprek" agar
 #    hasil terlihat bagus — ini definisi mekanik backtest itu sendiri) ──
@@ -69,16 +70,25 @@ BTC_REGIME_WARM = 60    # warm-up minimum sebelum regime BTC dianggap valid
 # Universe dari cache lokal (tidak download ulang)
 # ─────────────────────────────────────────────────────────────
 
-def load_universe(symbols_filter: list[str] | None = None) -> dict[str, pd.DataFrame]:
-    """Muat file .cache/*_1d_*.parquet, satu dataframe per simbol (stamp terbaru)."""
-    files = glob.glob(os.path.join(CACHE_DIR, "*_1d_*.parquet"))
-    latest: dict[str, str] = {}
-    for f in files:
-        base = os.path.basename(f)
-        sym = base.split("_1d_")[0]
-        stamp = base.split("_1d_")[1].replace(".parquet", "")
-        if sym not in latest or stamp > latest[sym].split("_1d_")[1].replace(".parquet", ""):
-            latest[sym] = f
+def load_universe(symbols_filter: list[str] | None = None,
+                  use_history: bool = False) -> dict[str, pd.DataFrame]:
+    """Muat satu dataframe harian per simbol.
+
+    - default: `.cache/<SYM>_1d_<stamp>.parquet` (stamp terbaru) — cache screener harian.
+    - use_history: `.cache_history/<SYM>_1d.parquet` — arsip panjang dari fetch_history.py.
+    """
+    if use_history:
+        files = glob.glob(os.path.join(HIST_DIR, "*_1d.parquet"))
+        latest = {os.path.basename(f).split("_1d.parquet")[0]: f for f in files}
+    else:
+        files = glob.glob(os.path.join(CACHE_DIR, "*_1d_*.parquet"))
+        latest = {}
+        for f in files:
+            base = os.path.basename(f)
+            sym = base.split("_1d_")[0]
+            stamp = base.split("_1d_")[1].replace(".parquet", "")
+            if sym not in latest or stamp > latest[sym].split("_1d_")[1].replace(".parquet", ""):
+                latest[sym] = f
     out = {}
     for sym, path in sorted(latest.items()):
         if symbols_filter and sym not in symbols_filter:
@@ -206,33 +216,25 @@ def backtest_symbol(symbol: str, df: pd.DataFrame, btc_dates, btc_regimes,
             t += 1
             continue
 
-        if result is None or result["vetoed"]:
+        if result is None:
+            t += 1
+            continue
+
+        # Counterfactual veto BTC MERAH: kalau SATU-SATUNYA alasan veto adalah
+        # "BTC status MERAH", simulasikan tetap — untuk mengukur apakah veto itu
+        # menyelamatkan modal atau justru membuang periode yang menguntungkan.
+        # (Veto lain akan tetap membatalkan setup walau MERAH dimatikan, jadi
+        #  hanya kasus MERAH-sendiri yang bisa diisolasi.)
+        merah_only = (result["vetoed"]
+                      and result.get("veto_reasons") == ["BTC status MERAH"])
+        if result["vetoed"] and not merah_only:
             t += 1
             continue
 
         plan = result["plan"]
-        fill_idx = try_fill(df, t, plan["entry"])     # ATURAN 3: paling cepat bar t+1
-        if fill_idx is None:
-            rows.append({
-                "symbol": symbol, "signal_date": date_t, "status": "cancelled",
-                "total_score": result["total"], "grade": result["grade"],
-                "s_volume": result["s_volume"], "s_stochrsi": result["s_stochrsi"],
-                "s_fib": result["s_fib"], "s_sr": result["s_sr"],
-                "s_pattern": result["s_pattern"],
-                "plan_entry": plan["entry"], "plan_sl": plan["sl"],
-                "plan_tp1": plan["tp1"], "plan_tp2": plan["tp2"],
-                "plan_rr1": plan["rr1"],
-                "fill_date": None, "fill_price": None, "exit_date": None,
-                "exit_type": None, "bars_held": None, "pnl_r": None, "win": None,
-            })
-            t = min(t + ENTRY_WINDOW, n - 1) + 1
-            continue
-
-        legs, exit_idx, outcome = simulate_exit(df, fill_idx, plan["entry"],
-                                                plan["sl"], plan["tp1"], plan["tp2"])
-        pnl_r = cost_adjusted_pnl_r(plan["entry"], plan["sl"], legs)
-        rows.append({
-            "symbol": symbol, "signal_date": date_t, "status": "filled",
+        base_row = {
+            "symbol": symbol, "signal_date": date_t,
+            "regime_status": regime["status"],
             "total_score": result["total"], "grade": result["grade"],
             "s_volume": result["s_volume"], "s_stochrsi": result["s_stochrsi"],
             "s_fib": result["s_fib"], "s_sr": result["s_sr"],
@@ -240,12 +242,29 @@ def backtest_symbol(symbol: str, df: pd.DataFrame, btc_dates, btc_regimes,
             "plan_entry": plan["entry"], "plan_sl": plan["sl"],
             "plan_tp1": plan["tp1"], "plan_tp2": plan["tp2"],
             "plan_rr1": plan["rr1"],
-            "fill_date": df.index[fill_idx], "fill_price": plan["entry"],
-            "exit_date": df.index[exit_idx], "exit_type": outcome,
-            "bars_held": exit_idx - fill_idx,
-            "pnl_r": pnl_r, "win": pnl_r > 0,
-        })
-        t = exit_idx + 1               # satu posisi per simbol dalam satu waktu
+        }
+        filled_status = "filled_merah_cf" if merah_only else "filled"
+
+        fill_idx = try_fill(df, t, plan["entry"])     # ATURAN 3: paling cepat bar t+1
+        if fill_idx is None:
+            cancel_status = "cancelled_merah_cf" if merah_only else "cancelled"
+            rows.append({**base_row, "status": cancel_status,
+                         "fill_date": None, "fill_price": None, "exit_date": None,
+                         "exit_type": None, "bars_held": None, "pnl_r": None, "win": None})
+            t = min(t + ENTRY_WINDOW, n - 1) + 1
+            continue
+
+        legs, exit_idx, outcome = simulate_exit(df, fill_idx, plan["entry"],
+                                                plan["sl"], plan["tp1"], plan["tp2"])
+        pnl_r = cost_adjusted_pnl_r(plan["entry"], plan["sl"], legs)
+        rows.append({**base_row, "status": filled_status,
+                     "fill_date": df.index[fill_idx], "fill_price": plan["entry"],
+                     "exit_date": df.index[exit_idx], "exit_type": outcome,
+                     "bars_held": exit_idx - fill_idx,
+                     "pnl_r": pnl_r, "win": pnl_r > 0})
+        # Counterfactual MERAH tidak "menghabiskan" slot posisi nyata — di dunia
+        # nyata setup ini tak diambil, jadi jangan majukan t ke exit-nya.
+        t = (min(t + ENTRY_WINDOW, n - 1) + 1) if merah_only else exit_idx + 1
     return rows, errors
 
 
@@ -349,6 +368,24 @@ def score_band_breakdown(filled: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def rr_band_breakdown(filled: pd.DataFrame) -> pd.DataFrame:
+    """Ekspektasi per pita R:R RENCANA (bukan skor). Menguji ulang temuan
+    backtest v1: R:R lebar berkinerja lebih buruk?"""
+    bands = [(0, 3, "0-3"), (3, 5, "3-5"), (5, 8, "5-8"), (8, 999, ">8")]
+    rows = []
+    for lo, hi, label in bands:
+        sub = filled[(filled["plan_rr1"] >= lo) & (filled["plan_rr1"] < hi)]
+        if sub.empty:
+            rows.append({"pita_rr": label, "n": 0, "win_rate": None, "expectancy_r": None})
+            continue
+        rows.append({
+            "pita_rr": label, "n": len(sub),
+            "win_rate": float((sub["pnl_r"] > 0).mean()),
+            "expectancy_r": float(sub["pnl_r"].mean()),
+        })
+    return pd.DataFrame(rows)
+
+
 def component_correlation(filled: pd.DataFrame) -> pd.DataFrame:
     comps = ["s_volume", "s_stochrsi", "s_fib", "s_sr", "s_pattern"]
     out = []
@@ -389,17 +426,22 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--baseline-seed", type=int, default=42)
     ap.add_argument("--outdir", default=".")
+    ap.add_argument("--history", action="store_true",
+                    help="Pakai arsip panjang .cache_history/ (dari fetch_history.py), "
+                         "bukan cache harian .cache/")
     args = ap.parse_args()
 
     symbols_filter = None
     if args.symbols:
         symbols_filter = [s.strip().upper() for s in args.symbols.split(",")]
 
-    print("-> Memuat universe dari .cache/*.parquet (tanpa download ulang) ...", flush=True)
-    universe = load_universe(symbols_filter)
+    src = ".cache_history/*.parquet" if args.history else ".cache/*.parquet"
+    print(f"-> Memuat universe dari {src} (tanpa download ulang) ...", flush=True)
+    universe = load_universe(symbols_filter, use_history=args.history)
     if "BTCUSDT" not in universe:
-        raise SystemExit("BTCUSDT tidak ada di .cache — dibutuhkan untuk regime. "
-                         "Jalankan screener.py --mode daily dulu untuk mengisi cache.")
+        raise SystemExit(f"BTCUSDT tidak ada di sumber ({src}) — dibutuhkan untuk regime. "
+                         + ("Jalankan fetch_history.py dulu." if args.history
+                            else "Jalankan screener.py --mode daily dulu untuk mengisi cache."))
     print(f"   {len(universe)} simbol dimuat: {', '.join(sorted(universe))}")
 
     print("-> Membangun regime BTC walk-forward (sekali, dipakai semua simbol) ...", flush=True)
@@ -428,6 +470,8 @@ def main():
 
     filled = trades[trades["status"] == "filled"].copy() if not trades.empty else trades
     cancelled_n = int((trades["status"] == "cancelled").sum()) if not trades.empty else 0
+    cf_n = int(trades["status"].str.endswith("_merah_cf").sum()) if not trades.empty else 0
+    real_n = len(trades) - cf_n if not trades.empty else 0
 
     print("-> Menjalankan baseline (beli acak, mekanik exit sama) ...", flush=True)
     n_real_filled = len(filled)
@@ -442,19 +486,33 @@ def main():
         baseline_out["source"] = "baseline_random"
     combined = pd.concat([trades_out, baseline_out], ignore_index=True, sort=False)
     csv_path = os.path.join(args.outdir, "backtest_trades.csv")
-    combined.to_csv(csv_path, index=False)
+    try:
+        combined.to_csv(csv_path, index=False)
+    except PermissionError:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        csv_path = os.path.join(args.outdir, f"backtest_trades_{stamp}.csv")
+        combined.to_csv(csv_path, index=False)
+        print(f"\n  (backtest_trades.csv terkunci — mungkin terbuka di Excel. "
+              f"Ditulis ke {os.path.basename(csv_path)} sebagai gantinya.)")
 
     # ── Laporan ──
     line = "=" * 96
     print("\n" + line)
     print(f"  HASIL BACKTEST WALK-FORWARD — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
-    print(f"  Universe: {len(universe)} simbol dari cache lokal | warmup {WARMUP_BARS} bar | "
+    src_label = ".cache_history (arsip panjang)" if args.history else ".cache (harian)"
+    span_txt = ""
+    if not filled.empty:
+        sd = pd.to_datetime(filled["signal_date"])
+        span_txt = f" | sinyal {sd.min().date()}..{sd.max().date()}"
+    print(f"  Universe: {len(universe)} simbol dari {src_label}{span_txt} | warmup {WARMUP_BARS} bar | "
           f"entry window {ENTRY_WINDOW} bar | timeout {MAX_HOLD} bar | "
           f"fee {FEE*100:.2f}% + slip {SLIP*100:.2f}% per sisi")
     print(line)
-    print(f"\n  Sinyal non-veto total : {len(trades)}")
+    print(f"\n  Sinyal non-veto total : {real_n}")
     print(f"  Terisi (filled)       : {len(filled)}")
     print(f"  Batal (entry tak kena): {cancelled_n}")
+    if cf_n:
+        print(f"  (+ {cf_n} sinyal counterfactual MERAH — dianalisa terpisah di bawah)")
 
     min_score = cfg["min_score"]
     tradeable = filled[filled["total_score"] >= min_score].copy() if not filled.empty else filled
@@ -479,6 +537,30 @@ def main():
         if m_trade["n"] < MIN_BAND_SAMPLE:
             print(f"     (Hanya {m_trade['n']} trade direkomendasikan — di bawah {MIN_BAND_SAMPLE}, "
                   "belum bisa disebut konklusif.)")
+
+    # ── Ambang skor 70 & skala skor (Tugas 3a/3b) ──
+    print("\n" + line)
+    print("  AMBANG SKOR & SKALA — apakah min_score 70 bisa divalidasi?")
+    print(line)
+    if not filled.empty:
+        n_ge70 = int((filled["total_score"] >= 70).sum())
+        n_ge80 = int((filled["total_score"] >= 80).sum())
+        max_score = int(filled["total_score"].max())
+        p95 = float(filled["total_score"].quantile(0.95))
+        print(f"  Sinyal terisi berskor >= 70 : {n_ge70}  (>= 80: {n_ge80})")
+        print(f"  Skor maksimum tercapai      : {max_score}   (persentil-95: {p95:.0f})")
+        if n_ge70 < MIN_BAND_SAMPLE:
+            print(f"\n  -> AMBANG 70 TIDAK BISA DIVALIDASI. Hanya {n_ge70} sinyal (< {MIN_BAND_SAMPLE}) "
+                  "yang pernah lolos.\n"
+                  "     Sistem skor jarang mencapai 70; sampel di grade tradeable terlalu kecil\n"
+                  "     untuk mengukur win rate/ekspektasi dengan keyakinan apa pun.")
+        else:
+            print(f"\n  -> {n_ge70} sinyal berskor >= 70 — cukup untuk dinilai (lihat pita 70-79 & 80+).")
+        if max_score < 80:
+            print(f"\n  -> MASALAH DESAIN SKALA: skor tertinggi yang PERNAH dicapai hanya {max_score}.\n"
+                  "     Grade A+ (>=80) secara praktis tidak terjangkau — 15 poin teratas skala\n"
+                  "     (mis. Pattern 15 + sebagian Volume) hampir tak pernah menyala bersamaan.\n"
+                  "     Bobot/threshold yang mengacu ke pita 80+ mengatur wilayah yang kosong.")
 
     print("\n" + line)
     print("  PECAHAN PER PITA SKOR (pertanyaan utama: apakah monoton naik?)")
@@ -511,6 +593,76 @@ def main():
                   "Lihat tabel di atas.")
     else:
         print("  Tidak ada trade terisi untuk dianalisa.")
+
+    # ── Pita R:R rencana (Tugas 3c) ──
+    print("\n" + line)
+    print("  PECAHAN PER PITA R:R RENCANA — apakah R:R lebar tetap lebih buruk?")
+    print(line)
+    if not filled.empty:
+        rrb = rr_band_breakdown(filled)
+        print(f"  {'PITA R:R':<10}{'N':>6}{'WIN RATE':>12}{'EKSPEKTASI':>14}")
+        for _, r in rrb.iterrows():
+            wr = "-" if r["win_rate"] is None else f"{r['win_rate']*100:.1f}%"
+            ex = "-" if r["expectancy_r"] is None else f"{r['expectancy_r']:+.3f} R"
+            print(f"  {r['pita_rr']:<10}{r['n']:>6}{wr:>12}{ex:>14}")
+        vals = [(r["pita_rr"], r["expectancy_r"]) for _, r in rrb.iterrows()
+                if r["expectancy_r"] is not None]
+        if len(vals) >= 3:
+            narrow = dict(vals).get("0-3")
+            wide = dict(vals).get("5-8")
+            if narrow is not None and wide is not None:
+                if narrow > wide:
+                    print(f"\n  -> Temuan backtest v1 BERTAHAN: pita 0-3 ({narrow:+.3f} R) > pita 5-8 "
+                          f"({wide:+.3f} R). R:R lebar tidak menambah edge.")
+                else:
+                    print(f"\n  -> Temuan v1 TIDAK bertahan di data ini: pita 5-8 ({wide:+.3f} R) "
+                          f">= pita 0-3 ({narrow:+.3f} R). Tinjau ulang max_plausible_rr.")
+    else:
+        print("  Tidak ada trade terisi untuk dianalisa.")
+
+    # ── Bull vs bear & veto BTC MERAH (Tugas 3d) ──
+    print("\n" + line)
+    print("  PERIODE BULL vs BEAR — apakah veto BTC MERAH menyelamatkan modal?")
+    print(line)
+    if not trades.empty:
+        f2 = filled.copy()
+        if not f2.empty:
+            f2["year"] = pd.to_datetime(f2["signal_date"]).dt.year
+            print("  Trade nyata (HIJAU/KUNING saja — MERAH sudah di-veto) per regime saat sinyal:")
+            for st in ("HIJAU", "KUNING"):
+                s = f2[f2["regime_status"] == st]
+                if len(s):
+                    print(f"    {st:<7} n={len(s):>4}  win {(s['pnl_r']>0).mean()*100:>5.1f}%  "
+                          f"E[R] {s['pnl_r'].mean():+.3f}")
+            print("\n  Per tahun kalender:")
+            for y in sorted(f2["year"].unique()):
+                s = f2[f2["year"] == y]
+                print(f"    {y}   n={len(s):>4}  win {(s['pnl_r']>0).mean()*100:>5.1f}%  "
+                      f"E[R] {s['pnl_r'].mean():+.3f}")
+
+        cf_rows = trades[trades["status"] == "filled_merah_cf"]
+        print("\n  COUNTERFACTUAL — setup yang HANYA di-veto karena BTC MERAH, disimulasikan tetap:")
+        if cf_rows.empty:
+            print("    Tidak ada (tidak pernah ada periode MERAH di rentang data, atau setiap\n"
+                  "    setup MERAH juga kena veto lain). Veto BTC MERAH tak teruji di data ini.")
+        else:
+            er = float(cf_rows["pnl_r"].mean())
+            tot = float(cf_rows["pnl_r"].sum())
+            wr = float((cf_rows["pnl_r"] > 0).mean())
+            print(f"    n={len(cf_rows)}  win {wr*100:.1f}%  E[R] {er:+.3f}  total {tot:+.1f} R")
+            base_er = m_base["expectancy_r"] if m_base["n"] else 0.0
+            if er < 0:
+                print(f"    -> Veto BTC MERAH MENYELAMATKAN modal: setup-setup itu rugi rata-rata "
+                      f"{er:+.3f} R.")
+            elif er > base_er:
+                print(f"    -> Veto BTC MERAH JUSTRU MEMBUANG PROFIT: setup-setup itu untung "
+                      f"{er:+.3f} R (> baseline {base_er:+.3f} R). Pertimbangkan melonggarkan\n"
+                      "       veto jadi size-down, bukan blokir total — TAPI cek jumlah sampel dulu.")
+            else:
+                print(f"    -> Netral: E[R] {er:+.3f} ~ baseline {base_er:+.3f}. Veto tidak "
+                      "menolong maupun merugikan secara berarti.")
+            if len(cf_rows) < MIN_BAND_SAMPLE:
+                print(f"    (n={len(cf_rows)} < {MIN_BAND_SAMPLE} — indikatif, belum konklusif.)")
 
     print("\n" + line)
     print("  KORELASI KOMPONEN SKOR TERHADAP HASIL TRADE")
@@ -557,11 +709,12 @@ def main():
                   "bukan pada seleksi skor.")
         n_wide = int((filled["plan_rr1"] > 8).sum())
         n_badtp = int((filled["plan_tp1"] >= filled["plan_tp2"]).sum())
-        print(f"\n  R:R rencana > 1:8        : {n_wide}/{len(filled)} ({n_wide/len(filled)*100:.0f}%) "
-              "— rasio selebar ini biasanya berarti level swing/support rusak (lihat riwayat bug).")
+        print(f"\n  R:R rencana > 1:8        : {n_wide}/{len(filled)} "
+              + ("(veto max_plausible_rr=8 bekerja)" if n_wide == 0
+                 else f"({n_wide/len(filled)*100:.0f}%) — harusnya 0 dgn veto 8; periksa"))
         if n_badtp:
-            print(f"  Rencana dgn TP1 >= TP2   : {n_badtp} — inkonsistensi build_trade_plan(), "
-                  "laporkan (backtest tidak memperbaiki scoring.py).")
+            print(f"  Rencana dgn TP1 >= TP2   : {n_badtp} — REGRESI: bug ini seharusnya sudah "
+                  "diperbaiki di build_trade_plan(). Laporkan.")
 
     print("\n" + line)
     print(f"  Diekspor: {csv_path}")
