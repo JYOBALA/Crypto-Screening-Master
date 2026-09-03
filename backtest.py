@@ -411,6 +411,38 @@ def score_band_breakdown(filled: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _mean_without_top(pnl: pd.Series, k: int) -> tuple[float, float]:
+    """(E[R] penuh, E[R] setelah membuang k winner teratas)."""
+    pnl = pnl.dropna()
+    if len(pnl) <= k + 1:
+        return float(pnl.mean()) if len(pnl) else 0.0, float(pnl.mean()) if len(pnl) else 0.0
+    srt = pnl.sort_values(ascending=False).to_numpy()
+    return float(srt.mean()), float((srt.sum() - srt[:k].sum()) / (len(srt) - k))
+
+
+def _fat_tail_note(pnl: pd.Series, k: int = 5) -> str:
+    """'E[R] +0.165, tapi tanpa 3 winner teratas -> -0.007 (rapuh)' —
+    berapa banyak trade teratas yang harus dibuang agar ekspektasi jadi <= 0."""
+    pnl = pnl.dropna()
+    n = len(pnl)
+    if n <= k + 1:
+        return f"E[R] {pnl.mean():+.3f} (n={n} terlalu kecil untuk uji tail)"
+    srt = pnl.sort_values(ascending=False).to_numpy()
+    total = srt.sum()
+    flip = None
+    for j in range(1, min(k, n - 1) + 1):
+        if (total - srt[:j].sum()) / (n - j) <= 0:
+            flip = j
+            break
+    base = f"E[R] {pnl.mean():+.3f}, median {pnl.median():+.3f}"
+    if flip is not None:
+        rest = (total - srt[:flip].sum()) / (n - flip)
+        return (f"{base}. Buang {flip} winner teratas -> {rest:+.3f} R. "
+                f"'Edge' = {flip} trade dari {n}; RAPUH.")
+    rest = (total - srt[:k].sum()) / (n - k)
+    return f"{base}. Tanpa {k} winner teratas: {rest:+.3f} R."
+
+
 def rr_band_breakdown(filled: pd.DataFrame) -> pd.DataFrame:
     """Ekspektasi per pita R:R RENCANA (bukan skor). Menguji ulang temuan
     backtest v1: R:R lebar berkinerja lebih buruk?"""
@@ -594,6 +626,7 @@ def main():
         if m_trade["n"] < MIN_BAND_SAMPLE:
             print(f"     (Hanya {m_trade['n']} trade direkomendasikan — di bawah {MIN_BAND_SAMPLE}, "
                   "belum bisa disebut konklusif.)")
+        print(f"     Ketahanan skor>=min: {_fat_tail_note(tradeable['pnl_r'])}")
 
     # ── Ambang skor 70 & skala skor (Tugas 3a/3b) ──
     print("\n" + line)
@@ -706,18 +739,21 @@ def main():
             er = float(cf_rows["pnl_r"].mean())
             tot = float(cf_rows["pnl_r"].sum())
             wr = float((cf_rows["pnl_r"] > 0).mean())
-            print(f"    n={len(cf_rows)}  win {wr*100:.1f}%  E[R] {er:+.3f}  total {tot:+.1f} R")
+            med = float(cf_rows["pnl_r"].median())
+            print(f"    n={len(cf_rows)}  win {wr*100:.1f}%  E[R] {er:+.3f}  median {med:+.3f}  total {tot:+.1f} R")
+            print(f"    Ketahanan: {_fat_tail_note(cf_rows['pnl_r'])}")
             base_er = m_base["expectancy_r"] if m_base["n"] else 0.0
-            if er < 0:
-                print(f"    -> Veto BTC MERAH MENYELAMATKAN modal: setup-setup itu rugi rata-rata "
-                      f"{er:+.3f} R.")
+            _, no5 = _mean_without_top(cf_rows["pnl_r"], 5)
+            if er < 0 or no5 <= 0:
+                print("    -> Veto BTC MERAH: ekspektasi setup yang diblokir <= 0 (atau positifnya\n"
+                      "       cuma dari segelintir winner). Veto tidak jelas merugikan; median trade\n"
+                      f"       yang diblokir = {med:+.3f} R (rugi penuh). Tidak ada bukti veto perlu dilonggarkan.")
             elif er > base_er:
-                print(f"    -> Veto BTC MERAH JUSTRU MEMBUANG PROFIT: setup-setup itu untung "
-                      f"{er:+.3f} R (> baseline {base_er:+.3f} R). Pertimbangkan melonggarkan\n"
-                      "       veto jadi size-down, bukan blokir total — TAPI cek jumlah sampel dulu.")
+                print(f"    -> Setup yang diblokir untung {er:+.3f} R (> baseline {base_er:+.3f}) DAN tahan\n"
+                      "       terhadap pembuangan winner teratas. Veto BTC MERAH mungkin terlalu ketat —\n"
+                      "       pertimbangkan size-down, bukan blokir total. Verifikasi manual dulu.")
             else:
-                print(f"    -> Netral: E[R] {er:+.3f} ~ baseline {base_er:+.3f}. Veto tidak "
-                      "menolong maupun merugikan secara berarti.")
+                print(f"    -> Netral: E[R] {er:+.3f} ~ baseline {base_er:+.3f}.")
             if len(cf_rows) < MIN_BAND_SAMPLE:
                 print(f"    (n={len(cf_rows)} < {MIN_BAND_SAMPLE} — indikatif, belum konklusif.)")
 

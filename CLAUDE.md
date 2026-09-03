@@ -63,13 +63,13 @@ Grade: A+ ≥80 · A 70–79 · B 60–69 · C <60
 
 **Veto rules** (batal otomatis berapapun skornya): BTC status MERAH · ada komponen bernilai 0 · retracement > 0.786 · Stoch RSI daily > 80 · R:R ke TP1 < minimum · **R:R ke TP1 > `max_plausible_rr` (8.0)**.
 
-**`max_plausible_rr` = 8.0 — dasarnya data backtest v1, bukan tebakan.** Ekspektasi per
-pita R:R rencana (357 trade, `backtest_trades.csv`): pita 0–3 → **+0.326 R** (win 36%),
-pita 3–5 → +0.303 R, pita 5–8 → **+0.025 R** (win 20%), pita >8 → +0.249 R tapi itu
-sepenuhnya efek fat tail (beberapa winner besar; win rate tetap 22%). R:R lebar tidak
-menambah edge — ia menurunkan win rate tanpa kompensasi ekspektasi yang andal. Ambang
-lama 15.0 praktis tidak pernah memotong apa pun. **Jangan naikkan lagi tanpa data
-backtest baru yang membantahnya.**
+**⚠️ `max_plausible_rr` = 8.0 SEDANG DITINJAU.** Diturunkan dari 15 → 8 (Tugas 1b) atas
+dasar backtest v1 (26 pair): pita R:R 5–8 hanya +0.025 R vs pita 0–3 +0.326 R.
+**Backtest 422-pair (2021–2026) MEMBANTAH itu:** pita 0–3 → −0.04 R, 3–5 → −0.05 R,
+5–8 → **+0.08 R** (justru terbaik), >8 → −1.1 R tapi cuma n=4. Temuan v1 adalah artefak
+sampel kecil. `max_plausible_rr` seharusnya cuma sanity-check geometri (menangkap swing
+basi / R:R 1:66), BUKAN filter kinerja — nilai aslinya 15 lebih tepat untuk peran itu.
+Menunggu keputusan user apakah dikembalikan ke 15.
 
 ## Mode GEM — sistem skor terpisah (accumulation.py)
 
@@ -139,21 +139,32 @@ perbaikannya sudah ada di dalam kode.
 
 ## Status backtest (per 2026-09-03)
 
-`backtest.py` + `fetch_history.py` sudah dibuat. Backtest v1 (26 simbol cache harian)
-menemukan: sistem skor **belum terbukti prediktif** — korelasi skor↔hasil ~nol,
-pita skor tidak monoton, edge tipis atas acak sepenuhnya dari fat tail, hanya 3
-sinyal yang pernah lolos min_score 70 (skor maks 75, grade A+ ≥80 tak pernah
-tercapai). Detail lengkap: lihat commit + `backtest_trades.csv`.
+`backtest.py` + `fetch_history.py` dibuat. Backtest terakhir: **422 pair USDT,
+2021–2026** (`.cache_history/`, `python backtest.py --history`).
 
-**JANGAN sentuh bobot 25/20/20/20/15 atau ambang sampai backtest di `.cache_history/`
-(≥150 pair, mencakup 2022) memberi sampel yang cukup per pita.** Tahap sekarang murni
-mengukur, bukan menyetel.
+Hasil (setelah perbaikan bug regime BTC, commit c631fda):
+- **Sistem TIDAK prediktif.** Korelasi skor total ↔ hasil: Pearson −0.01, Spearman
+  −0.13. Kelima komponen |r| < 0.02. Pita skor TIDAK monoton.
+- **Total P&L −120 R dari 10.682 trade.** Rugi. Tanpa 5 winner teratas: jauh lebih rugi.
+- Skor ≥70: 206 trade, E[R] +0.165 R — TAPI buang 3 winner teratas → −0.007 R.
+  "Edge" = 3 trade dari 206. Per-tahun tidak stabil (2025 −0.52 R). **Tidak lolos
+  sebagai prediktif.**
+- Skor maksimum 85; grade A+ (≥80) cuma 16 trade seumur data. Skala efektif mentok ~65.
+- **Regime BTC anti-prediktif:** trade saat HIJAU E[R] −0.10, saat KUNING +0.03.
+  Kebalikan dari desain. Counterfactual: setup yang diblokir veto MERAH E[R] ~0
+  (median rugi penuh) — veto tidak jelas menolong maupun merugikan.
+
+**JANGAN sentuh bobot 25/20/20/20/15 atau ambang.** Data sudah cukup dan jawabannya:
+sistem belum menghasilkan edge yang bisa diukur. Menyetel bobot di atas data yang
+korelasinya nol = overfitting.
 
 ## Rencana berikutnya (kalau user meminta)
 
-- **Selidiki skala skor**: kenapa maksimum praktis ~75, bukan 100. Apakah beberapa
-  komponen (mis. Pattern 15) hampir tak pernah menyala penuh? Ini masalah desain,
-  bukan tuning.
+- **Keputusan `max_plausible_rr`**: kembalikan ke 15? (lihat catatan veto di atas)
+- **Selidiki skala skor**: kenapa maksimum ~85 dan pita ≥80 nyaris kosong. Komponen
+  mana yang hampir tak pernah menyala penuh? Masalah desain, bukan tuning.
+- **Pertimbangkan ulang peran regime BTC** — di data ini ia tidak menyeleksi periode
+  yang lebih baik.
 - **Notifikasi Telegram/Discord** setelah screening selesai.
 - **Filter market cap & token unlock** via CoinGecko API (masih dicek manual).
 - **Penyetelan bobot berbasis data** — HANYA setelah backtest data besar + jurnal
