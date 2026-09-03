@@ -72,7 +72,7 @@ DEFAULT_CFG = {
     "capital": 10_000,
     "risk_pct": 1.5,
     "min_rr": 2.0,
-    "max_plausible_rr": 8.0,    # di atas ini = level rusak, bukan peluang (dasar: backtest, lihat CLAUDE.md)
+    "max_plausible_rr": 15.0,   # di atas ini = geometri swing/support rusak (mis. R:R 1:66). Sanity-check, BUKAN filter kinerja — lihat CLAUDE.md
     "min_score": 70,
     "max_open_positions": 5,
     # Mode GEM (deteksi akumulasi)

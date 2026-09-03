@@ -452,7 +452,7 @@ def evaluate(symbol, df_bias, df_htf, regime, cfg) -> dict | None:
 
     if plan["rr1"] < cfg["min_rr"]:
         vetoes.append(f"R:R ke TP1 hanya 1:{plan['rr1']} (min 1:{cfg['min_rr']})")
-    if plan["rr1"] > cfg.get("max_plausible_rr", 8.0):
+    if plan["rr1"] > cfg.get("max_plausible_rr", 15.0):
         vetoes.append(f"R:R 1:{plan['rr1']} tidak masuk akal - level swing/support "
                       "kemungkinan rusak, periksa chart manual")
     if st["k"] is not None and st["k"] > 80:

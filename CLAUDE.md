@@ -61,15 +61,11 @@ Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` 
 
 Grade: A+ ≥80 · A 70–79 · B 60–69 · C <60
 
-**Veto rules** (batal otomatis berapapun skornya): BTC status MERAH · ada komponen bernilai 0 · retracement > 0.786 · Stoch RSI daily > 80 · R:R ke TP1 < minimum · **R:R ke TP1 > `max_plausible_rr` (8.0)**.
+**Veto rules** (batal otomatis berapapun skornya): BTC status MERAH · ada komponen bernilai 0 · retracement > 0.786 · Stoch RSI daily > 80 · R:R ke TP1 < minimum · **R:R ke TP1 > `max_plausible_rr` (15.0)**.
 
-**⚠️ `max_plausible_rr` = 8.0 SEDANG DITINJAU.** Diturunkan dari 15 → 8 (Tugas 1b) atas
-dasar backtest v1 (26 pair): pita R:R 5–8 hanya +0.025 R vs pita 0–3 +0.326 R.
-**Backtest 422-pair (2021–2026) MEMBANTAH itu:** pita 0–3 → −0.04 R, 3–5 → −0.05 R,
-5–8 → **+0.08 R** (justru terbaik), >8 → −1.1 R tapi cuma n=4. Temuan v1 adalah artefak
-sampel kecil. `max_plausible_rr` seharusnya cuma sanity-check geometri (menangkap swing
-basi / R:R 1:66), BUKAN filter kinerja — nilai aslinya 15 lebih tepat untuk peran itu.
-Menunggu keputusan user apakah dikembalikan ke 15.
+`max_plausible_rr` = **15.0** — sanity-check geometri (menangkap swing basi yang
+menghasilkan R:R 1:66), **BUKAN filter kinerja**. Sempat diturunkan ke 8 lalu
+dikembalikan; lihat "Pelajaran: pembalikan max_plausible_rr" di bawah.
 
 ## Mode GEM — sistem skor terpisah (accumulation.py)
 
@@ -116,7 +112,8 @@ Riwayat ini penting — semuanya lolos dari selftest dan baru ketahuan dari data
 | Bug | Gejala | Perbaikan |
 |---|---|---|
 | Swing high basi | `fib_retr` NEGATIF, R:R absurd (1:66) | `last_impulse_swing()` merentangkan swing high ke high tertinggi sejak pivot |
-| Tidak ada batas atas R:R | R:R 1:66 lolos filter | Veto `max_plausible_rr` (15 → **8**, dasar: backtest v1) |
+| Tidak ada batas atas R:R | R:R 1:66 lolos filter | Veto `max_plausible_rr` = 15 (sempat 8, dikembalikan — lihat "Pelajaran" di bawah) |
+| Regime BTC basi di backtest | Veto MERAH tak pernah aktif; split bull/bear ngawur | `regime_at` bandingkan epoch ms vs ns → selalu ambil bar terakhir. Diperkenalkan oleh "perbaikan" UserWarning Claude sendiri. Fix: `DatetimeIndex.searchsorted` + sanity-check sebaran regime |
 | TP2 ≤ TP1 di rencana | 23 sinyal (mis. NEARUSDT: tp1 1.4405, tp2 1.341) | `build_trade_plan()`: kumpulkan semua level di atas entry (resistance/fib ext/target pola), urut, TP1 = terdekat, TP2 = berikutnya. Urutan TP2 > TP1 dijamin. Akar: fib ext_1.618 di-anchor ke impuls terakhir; kalau impuls kecil, ia mendarat di bawah resistance historis di atasnya |
 | Support referensi spring | Spring tidak pernah terdeteksi | Referensi dari 60% awal basis, bukan dasar seluruh range |
 | Jendela SC terlalu sempit | Selling Climax terlewat | Diperluas 40 bar ke belakang dari awal range |
@@ -127,6 +124,24 @@ Riwayat ini penting — semuanya lolos dari selftest dan baru ketahuan dari data
 | A/D nol dihitung naik | "A/D Line naik (+0.00)" dapat 4 poin | Ambang 0.05 |
 | Skala StochRSI biner | 19 dari 23 koin dapat nilai 3 yang sama | Ditambah tingkat 5 dan 7 |
 | UnicodeEncodeError di Windows | Crash saat output di-pipe/ditangkap (cp1252) walau normal di terminal langsung | `_force_utf8()` di tiap entry script + cek regresi di `verify.py` |
+
+## Pelajaran: pembalikan max_plausible_rr
+
+Backtest v1 (357 trade, 26 pair) menunjukkan pita R:R rencana 0-3 unggul jauh
+(+0.326R) atas pita 5-8 (+0.025R). Atas dasar itu ambang diturunkan 15 -> 8.
+Backtest v2 (422 pair, 507k bar) membalikkannya: 5-8 = +0.08R, 0-3 = -0.04R.
+
+Kesimpulan yang benar BUKAN "ternyata pita 5-8 yang unggul" — kedua angka itu
+praktis nol. Yang benar: R:R rencana tidak berpengaruh terhadap hasil, dan
+temuan v1 adalah artefak sampel kecil berekor gemuk.
+
+ATURAN: max_plausible_rr adalah pemeriksa kewarasan GEOMETRI (menangkap swing
+basi yang menghasilkan R:R 1:66), bukan filter kinerja. Jangan setel ulang
+berdasarkan hasil backtest.
+
+ATURAN UMUM: jangan mengubah parameter berdasarkan perbedaan ekspektasi
+di bawah ~0.1R atau sampel di bawah 100 per kelompok. Perbedaan sekecil itu
+tidak bertahan.
 
 ## Catatan lingkungan Windows
 

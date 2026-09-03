@@ -12,3 +12,4 @@ __pycache__/
 # Scratch / artefak run (jangan commit)
 scratch_*
 backtest_trades_*.csv
+backtest_v2_422pair.csv
