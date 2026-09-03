@@ -26,6 +26,9 @@ python screener.py --mode gem --csv       # deteksi akumulasi
 python inspect_symbol.py NEARUSDT         # bedah satu ticker
 python diagnose.py                        # cek sebaran volume universe
 python verify.py                          # gerbang mutu setelah edit kode
+
+python fetch_history.py --start 2021-01-01   # isi .cache_history/ (sekali, untuk backtest)
+python backtest.py --history                 # backtest walk-forward di arsip panjang
 ```
 
 
@@ -41,6 +44,8 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `accumulation.py` | Mode GEM: deteksi trading range, event Wyckoff (SC/AR/ST/Spring/Test/SOS/LPS/UTAD), VCP, Bollinger BandWidth percentile, ADL, RS vs BTC |
 | `inspect_symbol.py` | Bedah detail satu ticker (mendukung ketiga mode) |
 | `diagnose.py` | Diagnostik sebaran volume universe |
+| `fetch_history.py` | Unduh sejarah harian panjang (paginasi `startTime`) untuk SEMUA pair USDT TRADING → `.cache_history/`. Koreksi survivorship + mencakup bear 2022 |
+| `backtest.py` | Walk-forward `evaluate()` tanpa lookahead. `--history` pakai `.cache_history/`. Ukur monotonisitas pita skor, korelasi komponen, ketahanan (fat tail), pita R:R, split bull/bear, counterfactual veto MERAH. Ekspor `backtest_trades.csv` |
 
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 
@@ -132,11 +137,24 @@ Karena itu tiap entry script memanggil `_force_utf8()` di awal. Jangan hapus fun
 dan jangan "memperbaiki" gejalanya dengan `chcp 65001` atau `PYTHONIOENCODING` manual —
 perbaikannya sudah ada di dalam kode.
 
+## Status backtest (per 2026-09-03)
+
+`backtest.py` + `fetch_history.py` sudah dibuat. Backtest v1 (26 simbol cache harian)
+menemukan: sistem skor **belum terbukti prediktif** — korelasi skor↔hasil ~nol,
+pita skor tidak monoton, edge tipis atas acak sepenuhnya dari fat tail, hanya 3
+sinyal yang pernah lolos min_score 70 (skor maks 75, grade A+ ≥80 tak pernah
+tercapai). Detail lengkap: lihat commit + `backtest_trades.csv`.
+
+**JANGAN sentuh bobot 25/20/20/20/15 atau ambang sampai backtest di `.cache_history/`
+(≥150 pair, mencakup 2022) memberi sampel yang cukup per pita.** Tahap sekarang murni
+mengukur, bukan menyetel.
+
 ## Rencana berikutnya (kalau user meminta)
 
-- **`backtest.py`** — prioritas tertinggi. Jalankan `evaluate()` walk-forward pada tiap bar
-  historis TANPA lookahead, simulasikan entry/SL/TP, hitung win rate dan ekspektasi
-  per komponen skor. Ini satu-satunya cara mengetahui apakah bobot 25/20/20/20/15 masuk akal.
+- **Selidiki skala skor**: kenapa maksimum praktis ~75, bukan 100. Apakah beberapa
+  komponen (mis. Pattern 15) hampir tak pernah menyala penuh? Ini masalah desain,
+  bukan tuning.
 - **Notifikasi Telegram/Discord** setelah screening selesai.
 - **Filter market cap & token unlock** via CoinGecko API (masih dicek manual).
-- **Penyetelan bobot berbasis data** dari CSV historis + jurnal trade user.
+- **Penyetelan bobot berbasis data** — HANYA setelah backtest data besar + jurnal
+  trade user, dan hanya kalau ada sinyal ≥70 yang cukup untuk dinilai.
