@@ -29,6 +29,7 @@ import concurrent.futures as cf
 import glob
 import os
 import sys
+import time
 from datetime import datetime, timezone
 
 import numpy as np
@@ -50,6 +51,17 @@ def _force_utf8() -> None:
 
 
 _force_utf8()
+
+
+def _eta(done: int, total: int, t_start: float) -> str:
+    """String '[done/total] xx% | ETA mm:ss' untuk proses panjang."""
+    if done <= 0:
+        return f"[0/{total}]"
+    elapsed = time.time() - t_start
+    rem = elapsed / done * (total - done)
+    m, s = divmod(int(rem), 60)
+    return f"[{done}/{total}] {done/total*100:3.0f}% | ETA {m:02d}:{s:02d}"
+
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 HIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache_history")
@@ -452,6 +464,7 @@ def main():
     print(f"-> Menjalankan backtest walk-forward ({args.workers} worker) ...", flush=True)
     all_rows: list[dict] = []
     all_errors: list[str] = []
+    t_run = time.time()
     with cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = {ex.submit(backtest_symbol, sym, df, btc_dates, btc_regimes, cfg): sym
                 for sym, df in universe.items()}
@@ -460,7 +473,8 @@ def main():
             rows, errors = fut.result()
             all_rows.extend(rows)
             all_errors.extend(errors)
-            print(f"   [{i}/{len(universe)}] {sym}: {len(rows)} sinyal", flush=True)
+            if i % 10 == 0 or i == len(universe):
+                print(f"   {_eta(i, len(universe), t_run)}  ({sym}: {len(rows)} sinyal)", flush=True)
 
     trades = pd.DataFrame(all_rows)
     if all_errors:

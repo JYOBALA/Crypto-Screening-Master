@@ -189,13 +189,19 @@ def main():
     done = 0
     total_bars = 0
     t0 = time.time()
+    N = len(pairs)
     with cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = {ex.submit(process, s, start_ms, args.refresh): s for s in pairs}
         for fut in cf.as_completed(futs):
             sym, n, info = fut.result()
             done += 1
             total_bars += n
-            print(f"   [{done}/{len(pairs)}] {sym:<14} {n:>5} bar  {info}", flush=True)
+            eta = ""
+            if done >= 5:
+                rem = (time.time() - t0) / done * (N - done)
+                m, s = divmod(int(rem), 60)
+                eta = f"  | ETA {m:02d}:{s:02d}"
+            print(f"   [{done}/{N}] {done/N*100:3.0f}%  {sym:<14} {n:>5} bar  {info}{eta}", flush=True)
 
     covers_2022 = 0
     short = 0
