@@ -13,3 +13,4 @@ __pycache__/
 scratch_*
 backtest_trades_*.csv
 backtest_v2_422pair.csv
+factor_test_signals*.csv
