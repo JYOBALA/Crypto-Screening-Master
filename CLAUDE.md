@@ -173,14 +173,30 @@ Hasil (setelah perbaikan bug regime BTC, commit c631fda):
 sistem belum menghasilkan edge yang bisa diukur. Menyetel bobot di atas data yang
 korelasinya nol = overfitting.
 
+### Uji faktor tunggal (per 2026-09-04) — `factor_test.py`, `FACTOR_TEST_HASIL.md`
+
+Skor komposit final gagal → 9 faktor mentah diuji sendiri-sendiri per kuintil
+(13.020 sinyal), dengan koreksi within-symbol (demeaned per koin) + validasi
+holdout 30% simbol (seed tetap, sekali jalan).
+
+- Buy & hold: median koin **−83%**, 9% naik. Lahan sangat buruk.
+- ANOVA: identitas koin jelaskan **2,3%** varians pnl_r (F=0,8) — pemilihan koin
+  TIDAK mengalahkan pemilihan waktu di sini (return hold ≠ hasil trade pendek).
+- Discovery: hanya `dist_to_res_pct` lolos. `fib_retr` & `atr_pct` = proksi
+  kualitas koin (Spearman mentah kuat, demeaned nol). `rs_btc_30d` arah terbalik
+  (Q5 terburuk) — konsisten regime BTC anti-prediktif — tapi tak lolos.
+- Holdout: `dist_to_res_pct` **GUGUR** (arah kebalikan discovery, tidak monoton,
+  tidak stabil).
+- **TIDAK ADA faktor tunggal dengan sinyal timing yang bertahan out-of-sample.**
+
+**Holdout (seed 20260904) sudah dipakai untuk `dist_to_res_pct`.** Jangan uji
+ulang faktor itu di holdout yang sama — pakai seed/split baru kalau perlu.
+
 ## Rencana berikutnya (kalau user meminta)
 
-- **Keputusan `max_plausible_rr`**: kembalikan ke 15? (lihat catatan veto di atas)
 - **Selidiki skala skor**: kenapa maksimum ~85 dan pita ≥80 nyaris kosong. Komponen
   mana yang hampir tak pernah menyala penuh? Masalah desain, bukan tuning.
 - **Pertimbangkan ulang peran regime BTC** — di data ini ia tidak menyeleksi periode
-  yang lebih baik.
+  yang lebih baik (bahkan HIJAU rugi; RS-vs-BTC arah terbalik).
 - **Notifikasi Telegram/Discord** setelah screening selesai.
 - **Filter market cap & token unlock** via CoinGecko API (masih dicek manual).
-- **Penyetelan bobot berbasis data** — HANYA setelah backtest data besar + jurnal
-  trade user, dan hanya kalau ada sinyal ≥70 yang cukup untuk dinilai.
