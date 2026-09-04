@@ -45,7 +45,9 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `inspect_symbol.py` | Bedah detail satu ticker (mendukung ketiga mode) |
 | `diagnose.py` | Diagnostik sebaran volume universe |
 | `fetch_history.py` | Unduh sejarah harian panjang (paginasi `startTime`) untuk SEMUA pair USDT TRADING → `.cache_history/`. Koreksi survivorship + mencakup bear 2022 |
-| `backtest.py` | Walk-forward `evaluate()` tanpa lookahead. `--history` pakai `.cache_history/`. Ukur monotonisitas pita skor, korelasi komponen, ketahanan (fat tail), pita R:R, split bull/bear, counterfactual veto MERAH. Ekspor `backtest_trades.csv` |
+| `backtest.py` | Walk-forward `evaluate()` tanpa lookahead. `--history` pakai `.cache_history/`. Ukur monotonisitas pita skor, korelasi komponen, ketahanan (fat tail), pita R:R, split bull/bear, counterfactual veto MERAH |
+| `factor_test.py` | Uji 9 faktor mentah per kuintil (bukan komposit): demeaned per koin, ANOVA identitas koin, validasi holdout 30% simbol |
+| `mechanics_test.py` | Uji 6 varian mekanik trade dengan ENTRY ACAK (seleksi dinetralkan) |
 
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 
@@ -191,6 +193,24 @@ holdout 30% simbol (seed tetap, sekali jalan).
 
 **Holdout (seed 20260904) sudah dipakai untuk `dist_to_res_pct`.** Jangan uji
 ulang faktor itu di holdout yang sama — pakai seed/split baru kalau perlu.
+
+### Uji mekanik entry-acak (per 2026-09-04) — `mechanics_test.py`
+
+Menetralkan seleksi: 8.000 entry ACAK, 6 varian mekanik (A baseline · B tanpa BE ·
+C SL 3×ATR · D trailing · E timeout 90 · F full-exit-TP1).
+
+- **Keenam varian E[R] negatif** (−0,055 s/d −0,095 R), 95% CI seluruhnya < 0.
+- E[R] tanpa 5 trade terbaik ≈ E[R] penuh → negatif STRUKTURAL, bukan efek ekor.
+- Positif hanya di 2023 (edge regime, bukan mekanik).
+- **Tidak ada mekanik yang positif dengan entry acak.** Masalahnya bukan seleksi
+  vs manajemen posisi — pendekatan long-only di universe/TF ini tidak punya edge.
+
+## Pengembangan sistem skor: DITUTUP (2026-09-04)
+
+Rangkaian uji (backtest komposit → faktor tunggal → mekanik entry-acak) selesai.
+Kesimpulan lengkap + "apa yang TIDAK boleh disimpulkan": **`RINGKASAN_AKHIR.md`**.
+Singkatnya: skor tidak memberi edge terukur; jangan setel bobot; screener tetap
+checklist SOP manual, bukan sinyal prediktif.
 
 ## Rencana berikutnya (kalau user meminta)
 
