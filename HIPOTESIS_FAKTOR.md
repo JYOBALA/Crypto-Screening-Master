@@ -77,6 +77,21 @@ Tafsiran:
 Tambahan: ANOVA satu arah — berapa % varians `pnl_r` dijelaskan identitas koin saja
 (eta-squared). Angka besar = pemilihan koin ≫ pemilihan waktu (implikasi strategis).
 
+## Validasi holdout (v3 — ditambahkan sebelum melihat hasil faktor apa pun)
+
+Kalau ada faktor lolos 4 kriteria di **discovery**, ia TIDAK langsung dipakai /
+dimasukkan ke `scoring.py`. Validasi dulu:
+
+1. **70% simbol** = discovery, **30% simbol** = holdout. Split per SIMBOL (bukan
+   periode), seed tetap `20260904` — supaya tidak ada kebocoran lewat korelasi
+   antar-koin di waktu yang sama.
+2. Discovery: cari faktor yang lolos 4 kriteria (versi demeaned).
+3. Holdout: uji faktor itu **sekali saja**. Ambang sama (n≥200/kuintil karena
+   holdout lebih kecil). Arah (tanda Spearman demeaned) harus sama dengan discovery.
+4. Lolos discovery TAPI gugur di holdout → **faktor gugur, selesai**. Tidak diuji
+   ulang dengan parameter lain di holdout yang sama.
+5. Tidak ada yang lolos discovery → holdout **tidak disentuh** (tetap murni).
+
 ## Aturan
 
 - Tidak menggabungkan faktor. Satu per satu.
