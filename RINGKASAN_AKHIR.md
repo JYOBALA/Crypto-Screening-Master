@@ -15,6 +15,7 @@ sisi, SL menang kalau satu bar menyentuh SL & TP sekaligus. `scoring.py`,
 | **Backtest komposit** (`backtest.py`) | Skor 100 poin (Volume 25 / StochRSI 20 / Fib 20 / S/R 20 / Pattern 15) + veto + rencana trade, dijalankan tiap bar | 26 pair (v1) lalu **422 pair USDT, 2021–2026** (v2, `.cache_history/`) |
 | **Uji faktor tunggal** (`factor_test.py`) | 9 faktor mentah diuji sendiri-sendiri per kuintil, dengan koreksi within-symbol (demeaned per koin) + ANOVA identitas koin + **validasi holdout 30% simbol** (seed tetap, sekali jalan) | 13.020 sinyal non-veto, 364 koin |
 | **Uji mekanik** (`mechanics_test.py`) | 6 varian manajemen posisi dengan **ENTRY ACAK** (seleksi dinetralkan total), set entry sama untuk semua varian | 8.000 entry acak, 343 koin |
+| **Uji regime — Tahap 1** (`regime_test.py`) | 5 detektor regime (SMA200 / EMA50 / breadth / dominasi-proksi / BTC 90d), walk-forward; ukur return 30-hari-ke-depan universe saat BULL vs BEAR | ~130 minggu evaluasi, 422 koin |
 | **Konteks** | Return buy-and-hold per koin | 381 koin, dari bar warm-up ke-250 sampai akhir data |
 
 Faktor yang diuji: `vol_ratio`, `obv_slope`, `stochrsi_k`, `stochrsi_htf`,
@@ -80,7 +81,18 @@ menghadapi tekanan luar biasa.
 **Tidak ada mekanik yang menghasilkan ekspektasi positif dengan entry acak.**
 Masalahnya bukan "seleksi vs. manajemen posisi" — **pendekatan long-only pada
 universe & timeframe ini tidak menghasilkan edge dalam konfigurasi apa pun yang
-diuji.** Pengembangan sistem skor ditutup di sini.
+diuji.**
+
+### Uji regime long/short — Tahap 1 (prasyarat, `HASIL_REGIME.md`)
+Menguji apakah ada label regime yang memprediksi return 30-hari-ke-depan universe.
+5 detektor, semua walk-forward. **Tidak ada yang lulus** (selisih BULL−BEAR ≥ 5pp
++ CI tak lewati nol + arah stabil). Selisih terbesar R2/EMA50 = +2,8 pp, CI
+[−2,5, +8,1]. R3/R4/R5 (breadth, dominasi, momentum BTC) **anti-prediktif** —
+"BULL" justru punya return ke depan lebih buruk. Universe bleeds di hampir semua
+regime (return30 −1% s/d −4%). **Tahap 2 (S1–S4 long/short + short perp/funding)
+tidak dijalankan** — tidak ada detektor terbukti untuk membangunnya.
+
+Pengembangan sistem skor ditutup di sini.
 
 ### Bug yang ditemukan sepanjang proses
 | Bug | Perbaikan |
@@ -132,13 +144,23 @@ diuji.** Pengembangan sistem skor ditutup di sini.
    perlakukan sebagai checklist yang tetap butuh verifikasi chart & penilaian
    diskresioner user.
 
+9. **BUKAN "regime tidak bisa dideteksi, titik."** 5 detektor spesifik gagal di
+   universe/periode ini dengan ambang yang ditetapkan sebelumnya. R4 (dominasi)
+   memakai **proksi harga**, bukan dominasi mcap sebenarnya. Detektor lain, TF
+   lain, atau definisi regime lain tidak diuji.
+
+10. **Sisi SHORT tidak pernah diuji.** Tahap 2 (long/short, short-only) tidak
+    dijalankan karena Tahap 1 gagal. Semua kesimpulan di sini adalah tentang
+    **long-only**. Apakah short atau market-neutral punya edge di universe ini —
+    tidak diketahui dari data ini.
+
 ---
 
 ## Artefak
 
-- `backtest.py`, `factor_test.py`, `mechanics_test.py` — alat ukur (read-only).
+- `backtest.py`, `factor_test.py`, `mechanics_test.py`, `regime_test.py` — alat ukur (read-only).
 - `fetch_history.py` — pengisi `.cache_history/` (422 pair, 2021–2026).
-- `HIPOTESIS_FAKTOR.md` — protokol & hipotesis faktor (pra-registrasi).
-- `FACTOR_TEST_HASIL.md` — hasil faktor lengkap.
+- `HIPOTESIS_FAKTOR.md`, `HIPOTESIS_REGIME.md` — protokol pra-registrasi.
+- `FACTOR_TEST_HASIL.md`, `HASIL_REGIME.md` — hasil lengkap.
 - CSV (di-`.gitignore`, dikirim ke user): `backtest_v2_422pair.csv`,
   `factor_test_signals_v3.csv`, `mechanics_test_trades.csv`.

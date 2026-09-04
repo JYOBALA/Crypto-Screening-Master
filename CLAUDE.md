@@ -48,6 +48,7 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `backtest.py` | Walk-forward `evaluate()` tanpa lookahead. `--history` pakai `.cache_history/`. Ukur monotonisitas pita skor, korelasi komponen, ketahanan (fat tail), pita R:R, split bull/bear, counterfactual veto MERAH |
 | `factor_test.py` | Uji 9 faktor mentah per kuintil (bukan komposit): demeaned per koin, ANOVA identitas koin, validasi holdout 30% simbol |
 | `mechanics_test.py` | Uji 6 varian mekanik trade dengan ENTRY ACAK (seleksi dinetralkan) |
+| `regime_test.py` | Tahap 1 uji regime: 5 detektor walk-forward, return 30-hari-ke-depan universe saat BULL vs BEAR |
 
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 
@@ -205,12 +206,21 @@ C SL 3×ATR · D trailing · E timeout 90 · F full-exit-TP1).
 - **Tidak ada mekanik yang positif dengan entry acak.** Masalahnya bukan seleksi
   vs manajemen posisi — pendekatan long-only di universe/TF ini tidak punya edge.
 
+### Uji regime long/short — Tahap 1 (per 2026-09-04) — `regime_test.py`, `HASIL_REGIME.md`
+
+Prasyarat sebelum bangun long/short: apakah ada detektor regime yang memprediksi
+return 30-hari-ke-depan universe? 5 detektor walk-forward (SMA200, EMA50, breadth,
+dominasi-proksi, BTC 90d). **Tidak ada yang lulus** (selisih BULL−BEAR ≥5pp + CI
+tak lewati nol + arah stabil). Terbaik R2/EMA50 = +2,8pp (CI [−2,5, +8,1]).
+R3/R4/R5 anti-prediktif. **Tahap 2 (S1–S4 long/short + short perp/funding) tidak
+dijalankan.** Sisi short tidak pernah diuji.
+
 ## Pengembangan sistem skor: DITUTUP (2026-09-04)
 
-Rangkaian uji (backtest komposit → faktor tunggal → mekanik entry-acak) selesai.
-Kesimpulan lengkap + "apa yang TIDAK boleh disimpulkan": **`RINGKASAN_AKHIR.md`**.
-Singkatnya: skor tidak memberi edge terukur; jangan setel bobot; screener tetap
-checklist SOP manual, bukan sinyal prediktif.
+Rangkaian uji: backtest komposit → faktor tunggal → mekanik entry-acak → detektor
+regime. Semua null. Kesimpulan lengkap + "apa yang TIDAK boleh disimpulkan":
+**`RINGKASAN_AKHIR.md`**. Singkatnya: skor tidak memberi edge terukur; jangan
+setel bobot; screener tetap checklist SOP manual, bukan sinyal prediktif.
 
 ## Rencana berikutnya (kalau user meminta)
 
