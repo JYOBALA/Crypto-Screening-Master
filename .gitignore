@@ -15,3 +15,4 @@ backtest_trades_*.csv
 backtest_v2_422pair.csv
 factor_test_signals*.csv
 factor_test_signals_v3.csv
+mechanics_test_trades*.csv
