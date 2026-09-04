@@ -218,8 +218,8 @@ def _spearman(a: pd.Series, b: pd.Series) -> float:
     return float(a[m].rank().corr(b[m].rank()))
 
 
-def quintile_table(sig: pd.DataFrame, col: str) -> pd.DataFrame | None:
-    d = sig[[col, "pnl_r", "year"]].dropna(subset=[col])
+def quintile_table(sig: pd.DataFrame, col: str, ycol: str = "pnl_r") -> pd.DataFrame | None:
+    d = sig[[col, ycol, "year"]].dropna(subset=[col, ycol])
     if len(d) < 5 * MIN_PER_QUINTILE // 2:
         return None
     try:
@@ -232,18 +232,18 @@ def quintile_table(sig: pd.DataFrame, col: str) -> pd.DataFrame | None:
         out.append({
             "Q": q, "n": len(s),
             "faktor_lo": float(s[col].min()), "faktor_hi": float(s[col].max()),
-            "win": float((s["pnl_r"] > 0).mean()),
-            "E_R": float(s["pnl_r"].mean()),
-            "median_R": float(s["pnl_r"].median()),
+            "win": float((s[ycol] > 0).mean()),
+            "E_R": float(s[ycol].mean()),
+            "median_R": float(s[ycol].median()),
         })
     return pd.DataFrame(out)
 
 
-def stability(sig: pd.DataFrame, col: str) -> tuple[float, float]:
-    """(Q5-Q1) di 2021-2023, (Q5-Q1) di 2024-2026."""
+def stability(sig: pd.DataFrame, col: str, ycol: str = "pnl_r") -> tuple[float, float]:
+    """(Q5-Q1) di 2021-2023, (Q5-Q1) di 2024-2026 — pada kolom hasil ycol."""
     res = []
     for lo, hi in [(0, SPLIT_YEAR), (SPLIT_YEAR, 9999)]:
-        d = sig[(sig["year"] >= lo) & (sig["year"] < hi)][[col, "pnl_r"]].dropna(subset=[col])
+        d = sig[(sig["year"] >= lo) & (sig["year"] < hi)][[col, ycol]].dropna(subset=[col, ycol])
         if len(d) < 200:
             res.append(np.nan)
             continue
@@ -252,7 +252,7 @@ def stability(sig: pd.DataFrame, col: str) -> tuple[float, float]:
         except ValueError:
             res.append(np.nan)
             continue
-        e = d.groupby("q")["pnl_r"].mean()
+        e = d.groupby("q")[ycol].mean()
         res.append(float(e.get(4, np.nan) - e.get(0, np.nan)))
     return res[0], res[1]
 
@@ -270,16 +270,45 @@ def verdict(qt: pd.DataFrame, spr: float, s1: float, s2: float) -> tuple[bool, s
     stab_ok = (not np.isnan(s1) and not np.isnan(s2) and np.sign(s1) == np.sign(s2)
                and s1 != 0 and s2 != 0)
 
-    reasons = []
-    reasons.append(("n>=500/kuintil", n_ok))
-    reasons.append(("monoton atau |Q5-Q1|>0.15R", (mono_up or mono_dn or gap_ok)))
-    reasons.append((f"|Spearman|>=0.10 (={spr:+.3f})", spr_ok))
-    reasons.append((f"arah stabil (2021-23 {s1:+.2f} / 2024-26 {s2:+.2f})", stab_ok))
+    reasons = [
+        ("n>=500/kuintil", n_ok),
+        ("monoton atau |Q5-Q1|>0.15R", (mono_up or mono_dn or gap_ok)),
+        (f"|Spearman|>=0.10 (={spr:+.3f})", spr_ok),
+        (f"arah stabil ({s1:+.2f} / {s2:+.2f})", stab_ok),
+    ]
     passed = all(ok for _, ok in reasons)
     direction = ("Q5>Q1" if gap > 0 else "Q1>Q5") if abs(gap) > 1e-9 else "datar"
-    tag = "LOLOS" if passed else "gagal"
     detail = "; ".join(f"{'v' if ok else 'x'} {name}" for name, ok in reasons)
-    return passed, f"[{tag}] arah {direction}, gap {gap:+.3f} R | {detail}"
+    return passed, f"[{'LOLOS' if passed else 'gagal'}] arah {direction}, gap {gap:+.3f} R | {detail}"
+
+
+def anova_symbol_eta_sq(sig: pd.DataFrame, ycol: str = "pnl_r") -> tuple[float, float, int]:
+    """Fraksi varians pnl_r yang dijelaskan identitas koin saja (eta-squared,
+    ANOVA satu arah). Return (eta_sq, F, k_grup)."""
+    d = sig[["symbol", ycol]].dropna()
+    grand = d[ycol].mean()
+    ss_total = float(((d[ycol] - grand) ** 2).sum())
+    g = d.groupby("symbol")[ycol]
+    ss_between = float((g.count() * (g.mean() - grand) ** 2).sum())
+    ss_within = ss_total - ss_between
+    k = d["symbol"].nunique()
+    nobs = len(d)
+    eta_sq = ss_between / ss_total if ss_total > 0 else np.nan
+    f = ((ss_between / (k - 1)) / (ss_within / (nobs - k))) if (k > 1 and ss_within > 0) else np.nan
+    return eta_sq, f, k
+
+
+def interpret(raw_spr: float, dm_spr: float) -> str:
+    r, m = abs(raw_spr) if not np.isnan(raw_spr) else 0.0, abs(dm_spr) if not np.isnan(dm_spr) else 0.0
+    if r >= 0.10 and m < 0.05:
+        return "PROKSI KUALITAS KOIN — bukan timing. Tidak berguna untuk screener."
+    if r < 0.05 and m >= 0.10:
+        return "SINYAL TIMING TERSEMBUNYI (tertutup derau antar-koin). Temuan berharga."
+    if r >= 0.10 and m >= 0.10:
+        return "punya komponen timing (mungkin bercampur kualitas koin)."
+    if m >= 0.05 or r >= 0.05:
+        return "lemah/ambigu — di bawah ambang."
+    return "tidak ada sinyal (mentah maupun demeaned)."
 
 
 # ─────────────────────────────────────────────────────────────
@@ -353,51 +382,77 @@ def main():
                                 f"factor_test_signals_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}.csv")
         sig.to_csv(csv_path, index=False)
 
+    # demeaned per koin — buang efek "koin ini bagus/jelek", sisakan pemilihan MOMEN
+    sig["pnl_r_dm"] = sig["pnl_r"] - sig.groupby("symbol")["pnl_r"].transform("mean")
+
     span = f"{pd.to_datetime(sig['signal_date']).min().date()}..{pd.to_datetime(sig['signal_date']).max().date()}"
     print("\n" + "=" * 96)
-    print(f"  UJI FAKTOR TUNGGAL — {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}")
+    print(f"  UJI FAKTOR TUNGGAL (v2: mentah + demeaned per koin) — {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}")
     print(f"  {len(sig)} sinyal | {sig['symbol'].nunique()} koin | {span} | "
           f"E[R] semua sinyal {sig['pnl_r'].mean():+.3f} | win {(sig['pnl_r']>0).mean()*100:.1f}%")
-    print(f"  Kriteria lulus: monoton/|Q5-Q1|>{MIN_Q5_Q1}R + |Spearman|>={MIN_SPEARMAN} + "
-          f"n>={MIN_PER_QUINTILE}/kuintil + arah stabil {SPLIT_YEAR-3}-{SPLIT_YEAR-1}/{SPLIT_YEAR}-2026")
+    print("=" * 96)
+
+    eta, fstat, k = anova_symbol_eta_sq(sig)
+    print("\n  ANOVA satu arah — berapa varians pnl_r dijelaskan IDENTITAS KOIN saja?")
+    print(f"    eta-squared = {eta*100:.1f}%   (F={fstat:.1f}, {k} koin, n={len(sig)})")
+    if eta >= 0.05:
+        print(f"    -> Identitas koin menjelaskan {eta*100:.0f}% varians. Pemilihan KOIN "
+              "mengalahkan pemilihan WAKTU;\n"
+              "       uji demeaned di bawah adalah yang sebenarnya relevan untuk screener timing.")
+    else:
+        print(f"    -> Identitas koin hanya menjelaskan {eta*100:.1f}% varians — hasil mentah & "
+              "demeaned akan mirip.")
+
+    print("\n  Per faktor: Spearman MENTAH vs DEMEANED (kemampuan pilih momen) + selisih.")
+    print(f"  Verdict 4-kriteria dinilai pada versi DEMEANED. Ambang: |Spearman|>={MIN_SPEARMAN}, "
+          f"|Q5-Q1|>{MIN_Q5_Q1}R, n>={MIN_PER_QUINTILE}/kuintil, arah stabil.")
     print("=" * 96)
 
     summary = []
     for col, desc in FACTORS:
         print(f"\n{'-'*96}\n  {col}  —  {desc}")
-        qt = quintile_table(sig, col)
-        spr = _spearman(sig[col], sig["pnl_r"])
-        s1, s2 = stability(sig, col)
-        if qt is None:
+        if sig[col].notna().sum() < 5 * MIN_PER_QUINTILE // 2:
             print("    data tak cukup untuk analisa kuintil")
-            summary.append((col, False, "data tak cukup"))
+            summary.append((col, False, np.nan, np.nan, "data tak cukup"))
             continue
-        print(f"    {'Q':<3}{'n':>7}{'rentang faktor':>26}{'win':>9}{'E[R]':>10}{'median R':>11}")
-        for _, r in qt.iterrows():
-            rng = f"[{r['faktor_lo']:.3g}, {r['faktor_hi']:.3g}]"
-            print(f"    {int(r['Q']):<3}{int(r['n']):>7}{rng:>26}{r['win']*100:>8.1f}%"
-                  f"{r['E_R']:>+10.3f}{r['median_R']:>+11.3f}")
-        print(f"    Spearman(faktor, pnl_r) = {spr:+.3f}")
-        ok, msg = verdict(qt, spr, s1, s2)
+        raw_spr = _spearman(sig[col], sig["pnl_r"])
+        dm_spr = _spearman(sig[col], sig["pnl_r_dm"])
+        qt_raw = quintile_table(sig, col, "pnl_r")
+        qt_dm = quintile_table(sig, col, "pnl_r_dm")
+
+        print(f"    {'Q':<3}{'n':>7}{'rentang faktor':>24}{'E[R] mentah':>13}{'E[R] demeaned':>15}")
+        for (_, rr), (_, rd) in zip(qt_raw.iterrows(), qt_dm.iterrows()):
+            rng = f"[{rr['faktor_lo']:.3g}, {rr['faktor_hi']:.3g}]"
+            print(f"    {int(rr['Q']):<3}{int(rr['n']):>7}{rng:>24}{rr['E_R']:>+13.3f}{rd['E_R']:>+15.3f}")
+
+        diff = (dm_spr - raw_spr) if not (np.isnan(dm_spr) or np.isnan(raw_spr)) else np.nan
+        print(f"    Spearman  mentah {raw_spr:+.3f} | demeaned {dm_spr:+.3f} | selisih {diff:+.3f}")
+        s1, s2 = stability(sig, col, "pnl_r_dm")
+        ok, msg = verdict(qt_dm, dm_spr, s1, s2)
         print(f"    {msg}")
-        summary.append((col, ok, msg))
+        print(f"    -> {interpret(raw_spr, dm_spr)}")
+        summary.append((col, ok, raw_spr, dm_spr, interpret(raw_spr, dm_spr)))
 
     print("\n" + "=" * 96)
-    print("  RINGKASAN")
+    print("  RINGKASAN — Spearman mentah / demeaned / verdict(demeaned)")
     print("=" * 96)
-    lolos = [c for c, ok, _ in summary if ok]
-    for c, ok, msg in summary:
-        print(f"  {'LOLOS ' if ok else 'gagal '} {c:<22} {msg.split('|')[0].strip()}")
+    print(f"  {'faktor':<22}{'mentah':>9}{'demeaned':>11}{'verdict':>9}   tafsiran")
+    for c, ok, rs, ds, tafsir in summary:
+        rss = f"{rs:+.3f}" if not (isinstance(rs, float) and np.isnan(rs)) else "  -  "
+        dss = f"{ds:+.3f}" if not (isinstance(ds, float) and np.isnan(ds)) else "  -  "
+        print(f"  {c:<22}{rss:>9}{dss:>11}{'LOLOS' if ok else 'gagal':>9}   {tafsir}")
     print("=" * 96)
+
+    lolos = [c for c, ok, *_ in summary if ok]
     if not lolos:
-        print("  TIDAK ADA faktor yang lolos keempat kriteria.")
-        print("  Kesimpulan: sembilan faktor mentah, diuji sendiri-sendiri di "
-              f"{len(sig)} sinyal, tidak ada yang memisahkan menang dari kalah "
-              "dengan cara yang stabil.")
+        print("  TIDAK ADA faktor yang lolos verdict demeaned 4-kriteria.")
+        print(f"  Kesimpulan: sembilan faktor mentah, diuji sendiri-sendiri di {len(sig)} sinyal,\n"
+              "  tidak ada yang memisahkan MOMEN yang lebih baik dari yang lebih buruk di dalam\n"
+              "  koin yang sama, secara stabil. Screener ini memilih WAKTU — dan tidak ada faktor\n"
+              "  tunggal yang membantunya melakukan itu.")
     else:
-        print(f"  Faktor lolos: {', '.join(lolos)}")
-        print("  CATATAN: 'lolos' = ada sinyal terukur, BUKAN otomatis layak jadi strategi. "
-              "Verifikasi manual + out-of-sample sebelum dipakai.")
+        print(f"  Faktor lolos (verdict demeaned): {', '.join(lolos)}")
+        print("  'Lolos' = ada sinyal timing terukur & stabil, BUKAN otomatis layak jadi strategi.")
     print(f"\n  Diekspor: {csv_path}")
     print("  Ini alat ukur. Hasil nol adalah hasil yang sah.")
     print("=" * 96 + "\n")

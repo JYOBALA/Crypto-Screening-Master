@@ -50,6 +50,33 @@ long-only di lahan ini menghadapi tanah buruk — itu membingkai semua hasil.
 | 8 | `rs_btc_30d` | (return koin 30 bar) − (return BTC 30 bar), poin persentase | **Q5 > Q1** secara konvensional (pemimpin menang), **TAPI temuan 3d (regime BTC anti-prediktif) memberi alasan kuat menduga arah ini terbalik atau nol.** Faktor prioritas. |
 | 9 | `dd_from_1y_high_pct` | (harga − high tertinggi 252 bar)/high × 100 (≤ 0) | **Q5 > Q1** — dekat high 1 tahun = uptrend utuh. Alternatif kontrarian: drawdown dalam = mean-reversion (Q1 > Q5). |
 
+## Koreksi v2 — uji within-symbol (demeaned per koin)
+
+Ditambahkan SEBELUM melihat hasil v2 (hasil v1 mentah belum pernah dilihat penuh —
+run v1 dibatalkan di tengah, hanya konteks buy-and-hold yang sudah dilihat:
+median koin −83%, 9% naik).
+
+**Masalah:** 91% koin di universe ini rugi kalau di-hold. Faktor yang berkorelasi
+dengan KUALITAS/UKURAN koin akan lolos uji kuintil mentah tanpa punya kemampuan
+memilih MOMEN. Screener memilih *kapan* masuk, bukan *koin apa*.
+
+**Koreksi:** untuk tiap koin hitung rata-rata `pnl_r` koin itu, lalu
+`pnl_r_demeaned = pnl_r − rata_rata_pnl_r_koin`. Ulangi seluruh uji kuintil 9
+faktor memakai `pnl_r_demeaned`. Ini membuang efek antar-koin, menyisakan
+pertanyaan sebenarnya: **di dalam koin yang sama, apakah faktor membedakan momen
+baik dari momen buruk?**
+
+Laporkan berdampingan per faktor: Spearman mentah, Spearman demeaned, selisih.
+**Verdict 4-kriteria dinilai pada versi DEMEANED.**
+
+Tafsiran:
+- mentah kuat, demeaned nol → faktor cuma proksi kualitas koin, tak berguna untuk timing
+- mentah nol, demeaned kuat → sinyal timing yang tertutup derau antar-koin (temuan paling berharga)
+- keduanya nol → faktor memang tidak punya sinyal
+
+Tambahan: ANOVA satu arah — berapa % varians `pnl_r` dijelaskan identitas koin saja
+(eta-squared). Angka besar = pemilihan koin ≫ pemilihan waktu (implikasi strategis).
+
 ## Aturan
 
 - Tidak menggabungkan faktor. Satu per satu.
