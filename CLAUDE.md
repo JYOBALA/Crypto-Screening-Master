@@ -51,6 +51,7 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `mechanics_test.py` | Uji 6 varian mekanik trade dengan ENTRY ACAK (seleksi dinetralkan) |
 | `regime_test.py` | Tahap 1 uji regime: 5 detektor walk-forward, return 30-hari-ke-depan universe saat BULL vs BEAR |
 | `fetch_orderflow.py` | Unduh sejarah harian TERMASUK kolom aliran order (qav/trades/tbbav/tbqav) yang dibuang `fetch_klines()`/`fetch_history.py` → `.cache_orderflow/`. Universe U1/U2 dibekukan sekali (`universe_<u>.json`) |
+| `orderflow_test.py` | Uji cross-sectional (BUKAN simulasi trade): IC Spearman harian, 5 fitur order-flow × 3 horizon × 2 universe, holdout 30% simbol |
 
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 
@@ -249,6 +250,36 @@ Rangkaian uji: backtest komposit → faktor tunggal → mekanik entry-acak → d
 regime. Semua null. Kesimpulan lengkap + "apa yang TIDAK boleh disimpulkan":
 **`RINGKASAN_AKHIR.md`**. Singkatnya: skor tidak memberi edge terukur; jangan
 setel bobot; screener tetap checklist SOP manual, bukan sinyal prediktif.
+
+## Uji nilai prediktif aliran order — TIDAK ADA sinyal (per 2026-09-05)
+
+Proyek terpisah dari screener (`fetch_orderflow.py` + `orderflow_test.py`),
+metodologi cross-sectional (IC Spearman harian vs return demeaned, BUKAN
+simulasi trade). Pra-registrasi: `HIPOTESIS_ORDERFLOW.md`. Hasil lengkap:
+`HASIL_ORDERFLOW.md`.
+
+5 fitur (`taker_buy_ratio`, `avg_trade_size` persentil, `trade_intensity`,
+`flow_divergence` terkondisi harga datar, `taker_buy_ratio_extreme` dua-arah)
+× 3 horizon (5/10/20 hari) × 2 universe (U1 likuid ≥$5jt, U2 luas ≥$1jt) = 30
+uji, ambang t-stat 3,5 (koreksi multiple testing), holdout 30% simbol seed
+`20260905`. **0 dari 30 lulus.** 4 kombinasi (semua `taker_buy_ratio`/
+`trade_intensity` di U1) lolos kriteria discovery tapi GAGAL replikasi di
+holdout — `taker_buy_ratio` bahkan **berbalik arah total** di 47 simbol
+holdout, contoh nyata kenapa holdout wajib sebelum klaim sinyal.
+
+Temuan universe saat membangun U1/U2: filter `STABLES`/`EXCLUDE_TOKENS`
+(`screener.py`) lolos-kan 22 simbol non-kripto (15 saham/ETF ter-tokenisasi
+"xStocks" + 7 aset pegged emas/stablecoin baru) yang tidak ada saat filter
+itu ditulis — dikeluarkan lewat daftar eksplisit di `fetch_orderflow.py`
+(`EXCLUDE_TOKENIZED_EQUITY`/`EXCLUDE_PEGGED_EXTRA`) SEBELUM IC apa pun
+dihitung. Kalau menambah universe baru dari Binance, cek ulang apakah ada
+produk non-kripto baru yang lolos filter lama.
+
+**JANGAN bangun fitur order-flow ke dalam `scoring.py`.** Proyek terpisah dari
+validasi skor (`RINGKASAN_AKHIR.md` tetap khusus skor komposit, tidak diedit
+untuk ini), tapi kesimpulannya senada: skor komposit, faktor tunggal, mekanik
+entry-acak, detektor regime, DAN sekarang aliran order — lima kategori data
+berbeda, semua null di universe/periode ini.
 
 ## Rencana berikutnya (kalau user meminta)
 
