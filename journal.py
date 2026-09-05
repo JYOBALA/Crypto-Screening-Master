@@ -191,7 +191,7 @@ def cmd_new(args: argparse.Namespace) -> None:
 # ─────────────────────────────────────────────────────────────
 
 def cmd_close(args: argparse.Namespace) -> None:
-    records = [r for r in load_records() if not r["_tampered"]]
+    records = load_clean_records()
     entry = next((r for r in records if r["event"] == "entry" and r["trade_id"] == args.id), None)
     if entry is None:
         raise SystemExit(f"Trade #{args.id} tidak ditemukan di journal.jsonl (atau recordnya rusak -- lihat peringatan integritas di atas).")
@@ -270,30 +270,129 @@ def hypothetical_pnl(entry_rec: dict) -> dict:
     return {"status": "selesai", "pnl_r": pnl_r, "outcome": tag, "estimasi_masih_berjalan": still_running}
 
 
-def cmd_review(_args: argparse.Namespace) -> None:
-    records = [r for r in load_records() if not r["_tampered"]]
+def load_clean_records() -> list[dict]:
+    """load_records() minus record yang gagal verifikasi hash."""
+    return [r for r in load_records() if not r["_tampered"]]
+
+
+def open_positions(records: list[dict] | None = None) -> list[dict]:
+    """Daftar trade AMBIL yang belum ada event exit-nya. Dipakai jurnal review
+    DAN dashboard (lewat daily_run.py) -- satu sumber kebenaran posisi terbuka."""
+    records = records if records is not None else load_clean_records()
+    entries = {r["trade_id"]: r for r in records if r["event"] == "entry"}
+    exits = {r["trade_id"]: r for r in records if r["event"] == "exit"}
+    return [e for tid, e in entries.items() if e["decision"] == "AMBIL" and tid not in exits]
+
+
+def compute_review(records: list[dict] | None = None) -> dict:
+    """Hitung seluruh statistik review sebagai dict (tanpa print) supaya bisa
+    dipakai ulang oleh `journal.py review` (cetak ke terminal) MAUPUN
+    daily_run.py (tulis ke data/latest.json utk dashboard) -- satu sumber
+    kebenaran, tidak dihitung dua kali dengan logika yang bisa berbeda."""
+    records = records if records is not None else load_clean_records()
     entries = {r["trade_id"]: r for r in records if r["event"] == "entry"}
     exits = {r["trade_id"]: r for r in records if r["event"] == "exit"}
 
-    closed_taken = []   # (entry, exit)
-    for tid, e in entries.items():
-        if e["decision"] == "AMBIL" and tid in exits:
-            closed_taken.append((e, exits[tid]))
-    open_taken = [e for tid, e in entries.items() if e["decision"] == "AMBIL" and tid not in exits]
+    closed_taken = [(e, exits[tid]) for tid, e in entries.items()
+                     if e["decision"] == "AMBIL" and tid in exits]
+    open_taken = open_positions(records)
     skipped = [e for e in entries.values() if e["decision"] == "LEWAT"]
+    n = len(closed_taken)
 
+    out = {
+        "n_entries": len(entries),
+        "n_ambil": sum(1 for e in entries.values() if e["decision"] == "AMBIL"),
+        "n_lewat": len(skipped),
+        "n_closed": n,
+        "n_open": len(open_taken),
+        "min_trades_for_conclusion": MIN_TRADES_FOR_CONCLUSION,
+        "meets_min_trades": n >= MIN_TRADES_FOR_CONCLUSION,
+        "performance": None,
+        "calibration": None,
+        "calibration_monotone": None,
+        "spearman_score_pnl": None,
+        "spearman_conf_pnl": None,
+        "skipped": {"n": len(skipped), "status_counts": {}, "hypothetical_mean_pnl": None,
+                    "n_hypothetical": 0, "skip_better_than_taken": None},
+    }
+    if n == 0:
+        return out
+
+    pnl = [x["pnl_r"] for _, x in closed_taken]
+    wins = [x for x in pnl if x > 0]
+    losses = [x for x in pnl if x < 0]
+    expectancy = float(np.mean(pnl))
+    win_rate = len(wins) / n * 100
+    profit_factor = (sum(wins) / abs(sum(losses))) if losses else None   # None = tak terhingga (tanpa rugi)
+
+    eq = np.cumsum(pnl)
+    running_max = np.maximum.accumulate(eq)
+    max_dd = float((eq - running_max).min())
+
+    exp_no_top3 = None
+    if n > 3:
+        rest = sorted(pnl, reverse=True)[3:]
+        exp_no_top3 = float(np.mean(rest)) if rest else None
+
+    out["performance"] = {
+        "expectancy": expectancy, "win_rate": win_rate,
+        "profit_factor": profit_factor, "max_drawdown": max_dd,
+        "expectancy_no_top3": exp_no_top3,
+    }
+
+    conf_groups: dict[int, list[float]] = {}
+    for e, x in closed_taken:
+        conf_groups.setdefault(e["confidence"], []).append(x["pnl_r"])
+    calibration = {}
+    means_in_order = []
+    for c in range(1, 6):
+        if c in conf_groups:
+            m = float(np.mean(conf_groups[c]))
+            calibration[str(c)] = {"n": len(conf_groups[c]), "mean_pnl": m}
+            means_in_order.append(m)
+        else:
+            calibration[str(c)] = None
+    out["calibration"] = calibration
+    if len(means_in_order) >= 2:
+        out["calibration_monotone"] = all(
+            means_in_order[i] <= means_in_order[i + 1] for i in range(len(means_in_order) - 1))
+
+    scores = [e["total_score"] for e, _ in closed_taken]
+    confs = [e["confidence"] for e, _ in closed_taken]
+    sp_score = _spearman(scores, pnl)
+    sp_conf = _spearman(confs, pnl)
+    out["spearman_score_pnl"] = None if pd.isna(sp_score) else sp_score
+    out["spearman_conf_pnl"] = None if pd.isna(sp_conf) else sp_conf
+
+    statuses: dict[str, int] = {}
+    hyp_pnl = []
+    for e in skipped:
+        h = hypothetical_pnl(e)
+        statuses[h["status"]] = statuses.get(h["status"], 0) + 1
+        if h["status"] == "selesai" and not h.get("estimasi_masih_berjalan"):
+            hyp_pnl.append(h["pnl_r"])
+    mean_skip = float(np.mean(hyp_pnl)) if hyp_pnl else None
+    out["skipped"] = {
+        "n": len(skipped), "status_counts": statuses,
+        "hypothetical_mean_pnl": mean_skip, "n_hypothetical": len(hyp_pnl),
+        "skip_better_than_taken": (mean_skip > expectancy) if mean_skip is not None else None,
+    }
+    return out
+
+
+def cmd_review(_args: argparse.Namespace) -> None:
+    rv = compute_review()
     line = "=" * 74
     print("\n" + line)
     print("  JOURNAL REVIEW -- statistik & kalibrasi (bukan rekomendasi)")
     print(line)
-    print(f"  Total record entry : {len(entries)}  (AMBIL={sum(1 for e in entries.values() if e['decision']=='AMBIL')}, "
-          f"LEWAT={len(skipped)})")
-    print(f"  AMBIL, sudah ditutup: {len(closed_taken)}   AMBIL, masih terbuka: {len(open_taken)}")
+    print(f"  Total record entry : {rv['n_entries']}  (AMBIL={rv['n_ambil']}, LEWAT={rv['n_lewat']})")
+    print(f"  AMBIL, sudah ditutup: {rv['n_closed']}   AMBIL, masih terbuka: {rv['n_open']}")
 
-    n = len(closed_taken)
-    if n < MIN_TRADES_FOR_CONCLUSION:
+    n = rv["n_closed"]
+    if n < rv["min_trades_for_conclusion"]:
         print("\n  " + "!" * 70)
-        print(f"  PERINGATAN BESAR: baru {n} trade yang ditutup (< {MIN_TRADES_FOR_CONCLUSION}).")
+        print(f"  PERINGATAN BESAR: baru {n} trade yang ditutup (< {rv['min_trades_for_conclusion']}).")
         print("  BELUM ADA KESIMPULAN YANG BISA DITARIK dari statistik di bawah ini.")
         print("  Angka tetap ditampilkan untuk transparansi, bukan sebagai bukti apa pun.")
         print("  " + "!" * 70)
@@ -303,80 +402,52 @@ def cmd_review(_args: argparse.Namespace) -> None:
         print(line + "\n")
         return
 
-    pnl = [x["pnl_r"] for _, x in closed_taken]
-    wins = [x for x in pnl if x > 0]
-    losses = [x for x in pnl if x < 0]
-    expectancy = float(np.mean(pnl))
-    win_rate = len(wins) / n * 100
-    profit_factor = (sum(wins) / abs(sum(losses))) if losses else float("inf")
-
-    eq = np.cumsum(pnl)
-    running_max = np.maximum.accumulate(eq)
-    drawdown = eq - running_max
-    max_dd = float(drawdown.min())
-
+    perf = rv["performance"]
     print(f"\n  -- Performa ({n} trade, satuan R) " + "-" * 30)
-    print(f"  Ekspektasi (E[R])   : {expectancy:+.3f}")
-    print(f"  Win rate            : {win_rate:.1f}%")
-    print(f"  Profit factor       : {profit_factor:.2f}")
-    print(f"  Max drawdown        : {max_dd:.3f}R")
-
-    if n > 3:
-        pnl_sorted = sorted(pnl, reverse=True)
-        rest = pnl_sorted[3:]
-        exp_no_top3 = float(np.mean(rest)) if rest else float("nan")
-        print(f"  E[R] tanpa 3 terbaik: {exp_no_top3:+.3f}  (uji ketahanan ekor)")
+    print(f"  Ekspektasi (E[R])   : {perf['expectancy']:+.3f}")
+    print(f"  Win rate            : {perf['win_rate']:.1f}%")
+    pf = perf["profit_factor"]
+    print(f"  Profit factor       : {'inf (tanpa rugi)' if pf is None else f'{pf:.2f}'}")
+    print(f"  Max drawdown        : {perf['max_drawdown']:.3f}R")
+    if perf["expectancy_no_top3"] is not None:
+        print(f"  E[R] tanpa 3 terbaik: {perf['expectancy_no_top3']:+.3f}  (uji ketahanan ekor)")
 
     print(f"\n  -- Kalibrasi keyakinan (1-5) " + "-" * 30)
-    conf_groups: dict[int, list[float]] = {}
-    for e, x in closed_taken:
-        conf_groups.setdefault(e["confidence"], []).append(x["pnl_r"])
-    means_in_order = []
     for c in range(1, 6):
-        if c in conf_groups:
-            m = float(np.mean(conf_groups[c]))
-            means_in_order.append(m)
-            print(f"  keyakinan {c}: n={len(conf_groups[c]):>3d}  E[R]={m:+.3f}")
+        cal = rv["calibration"][str(c)]
+        if cal:
+            print(f"  keyakinan {c}: n={cal['n']:>3d}  E[R]={cal['mean_pnl']:+.3f}")
         else:
             print(f"  keyakinan {c}: (belum ada data)")
-    if len(means_in_order) >= 2:
-        monotone = all(means_in_order[i] <= means_in_order[i + 1] for i in range(len(means_in_order) - 1))
-        print(f"  Monoton naik? {'YA' if monotone else 'TIDAK'}"
-              + ("" if monotone else "  -- keyakinan user TIDAK berbanding lurus dgn hasil di data ini"))
+    if rv["calibration_monotone"] is not None:
+        mono = rv["calibration_monotone"]
+        print(f"  Monoton naik? {'YA' if mono else 'TIDAK'}"
+              + ("" if mono else "  -- keyakinan user TIDAK berbanding lurus dgn hasil di data ini"))
 
     print(f"\n  -- Diskresi vs skor " + "-" * 30)
-    scores = [e["total_score"] for e, _ in closed_taken]
-    confs = [e["confidence"] for e, _ in closed_taken]
-    sp_score = _spearman(scores, pnl)
-    sp_conf = _spearman(confs, pnl)
-    print(f"  Spearman skor screener vs pnl_r   : {sp_score:+.3f}  (temuan backtest: seharusnya ~0)")
-    print(f"  Spearman keyakinan user vs pnl_r  : {sp_conf:+.3f}")
-    if pd.notna(sp_score) and pd.notna(sp_conf):
+    sp_score, sp_conf = rv["spearman_score_pnl"], rv["spearman_conf_pnl"]
+    print(f"  Spearman skor screener vs pnl_r   : "
+          f"{'n/a' if sp_score is None else f'{sp_score:+.3f}'}  (temuan backtest: seharusnya ~0)")
+    print(f"  Spearman keyakinan user vs pnl_r  : {'n/a' if sp_conf is None else f'{sp_conf:+.3f}'}")
+    if sp_score is not None and sp_conf is not None:
         if sp_conf - abs(sp_score) > 0.15:
             print("  -> Keyakinan user jauh lebih berkorelasi dgn hasil drpd skor -- "
                   "bukti AWAL penilaian diskresioner menambah nilai (n masih kecil, lihat peringatan di atas).")
         else:
             print("  -> Belum ada bukti keyakinan user menambah nilai di atas skor screener di data ini.")
 
-    print(f"\n  -- Trade yang DILEWATI ({len(skipped)} record) " + "-" * 20)
-    if not skipped:
+    sk = rv["skipped"]
+    print(f"\n  -- Trade yang DILEWATI ({sk['n']} record) " + "-" * 20)
+    if sk["n"] == 0:
         print("  Tidak ada trade yang dilewati tercatat.")
     else:
-        statuses: dict[str, int] = {}
-        hyp_pnl = []
-        for e in skipped:
-            h = hypothetical_pnl(e)
-            statuses[h["status"]] = statuses.get(h["status"], 0) + 1
-            if h["status"] == "selesai" and not h.get("estimasi_masih_berjalan"):
-                hyp_pnl.append(h["pnl_r"])
-        for status, cnt in statuses.items():
+        for status, cnt in sk["status_counts"].items():
             print(f"  status={status:<28s} n={cnt}")
-        if hyp_pnl:
-            mean_skip = float(np.mean(hyp_pnl))
-            print(f"\n  Hasil hipotetis trade DILEWATI (n={len(hyp_pnl)}, andai tetap diambil, "
-                  f"mekanik+biaya sama): E[R] = {mean_skip:+.3f}")
-            print(f"  Hasil aktual trade DIAMBIL                                  : E[R] = {expectancy:+.3f}")
-            if mean_skip > expectancy:
+        if sk["hypothetical_mean_pnl"] is not None:
+            print(f"\n  Hasil hipotetis trade DILEWATI (n={sk['n_hypothetical']}, andai tetap diambil, "
+                  f"mekanik+biaya sama): E[R] = {sk['hypothetical_mean_pnl']:+.3f}")
+            print(f"  Hasil aktual trade DIAMBIL                                  : E[R] = {perf['expectancy']:+.3f}")
+            if sk["skip_better_than_taken"]:
                 print("  -> Trade yang DILEWATI justru lebih baik daripada yang DIAMBIL -- "
                       "kemampuan menyaring user NEGATIF di data ini.")
             else:

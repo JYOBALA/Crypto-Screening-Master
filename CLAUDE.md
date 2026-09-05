@@ -33,6 +33,7 @@ python fetch_orderflow.py --universe u2      # isi .cache_orderflow/ (kolom qav/
 python journal.py new SYMBOL                 # catat kondisi objektif + tesis sebelum entry
 python journal.py close ID --exit-price X --exit-reason SL   # catat exit aktual
 python journal.py review                     # kalibrasi keyakinan vs hasil (butuh >=50 trade utk kesimpulan)
+python daily_run.py                          # cron harian: screener 15 koin beku + notifikasi Telegram + data dashboard
 ```
 
 
@@ -55,7 +56,10 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `regime_test.py` | Tahap 1 uji regime: 5 detektor walk-forward, return 30-hari-ke-depan universe saat BULL vs BEAR |
 | `fetch_orderflow.py` | Unduh sejarah harian TERMASUK kolom aliran order (qav/trades/tbbav/tbqav) yang dibuang `fetch_klines()`/`fetch_history.py` → `.cache_orderflow/`. Universe U1/U2 dibekukan sekali (`universe_<u>.json`) |
 | `orderflow_test.py` | Uji cross-sectional (BUKAN simulasi trade): IC Spearman harian, 5 fitur order-flow × 3 horizon × 2 universe, holdout 30% simbol |
-| `journal.py` | Jurnal trade sebagai instrumen riset: tangkap kondisi objektif `evaluate()` + tesis/keyakinan/keputusan user, append-only + hash SHA256 per record → `journal.jsonl` (gitignored). `review` mengukur kalibrasi keyakinan & diskresi-vs-skor, TIDAK pernah menyarankan ambil/lewati |
+| `journal.py` | Jurnal trade sebagai instrumen riset: tangkap kondisi objektif `evaluate()` + tesis/keyakinan/keputusan user, append-only + hash SHA256 per record → `journal.jsonl` (gitignored). `compute_review()` = satu sumber kebenaran statistik, dipakai `review` (cetak) DAN `daily_run.py` (dashboard). TIDAK pernah menyarankan ambil/lewati |
+| `daily_run.py` | Cron harian (bukan proses menetap): screener HANYA 15 simbol `universe_frozen.json`, tulis `data/latest.json` + arsip, kirim ringkasan Telegram. Guard idempoten (skip kalau sudah jalan hari ini kecuali `--force`), validasi bahasa (`_check_forbidden`) sebelum kirim, notifikasi ERROR kalau jaringan gagal (tidak diam) |
+| `dashboard.html` | Statis, tanpa build step, baca `data/latest.json` via `fetch()`. Baca-saja — tidak ada input trade. Statistik jurnal (bagian C) sengaja disembunyikan di bawah 25 trade tertutup |
+| `universe_frozen.json` | 15 simbol dibekukan 2026-09-05 (`KRITERIA_EVALUASI.md`) — **jangan diedit** sampai trade ke-50. `daily_run.py` baca file ini, TIDAK fetch universe dari volume hari ini |
 
 `KRITERIA_EVALUASI.md` — pra-registrasi eksperimen trading manual (universe
 15 koin dibekukan 2026-09-05, kriteria LANJUT/BERHENTI di trade ke-50,
@@ -64,6 +68,11 @@ Kalau ada klaim statistik baru yang mau ditambahkan ke sana atau ke sini,
 verifikasi dulu terhadap data mentah — dua klaim di draft awal dokumen itu
 ("−40% koin besar vs −83%", "2025 −0,13R/2026 −0,15R") ternyata tidak bisa
 direproduksi/tidak cocok dengan data, dan harus dikoreksi sebelum commit.
+
+**Deploy VPS:** `DEPLOY.md` — setup cron `daily_run.py`, bot Telegram, dan
+dashboard. Dashboard WAJIB bind `127.0.0.1` + akses lewat SSH tunnel —
+`data/latest.json` mencerminkan `journal.jsonl` (data trading pribadi).
+`.env` (token bot) dan `journal.jsonl` tidak pernah di-commit.
 
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 

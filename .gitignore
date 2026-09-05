@@ -7,12 +7,20 @@
 # Jurnal trade (journal.py) -- data pribadi user, tidak otomatis dicommit.
 # Append-only + ter-hash; backup manual jadi tanggung jawab user kalau mau disimpan.
 journal.jsonl
+# Secret bot Telegram -- JANGAN pernah dicommit.
+.env
+*.log
 __pycache__/
 *.pyc
 
 # Hasil screening JSON (besar). CSV SENGAJA di-commit —
 # nanti jadi bahan backtest untuk menyetel bobot skor.
 *.json
+# ...tapi universe yang dibekukan untuk KRITERIA_EVALUASI.md/daily_run.py
+# WAJIB di-commit -- itu bukan output, itu definisi eksperimen.
+!universe_frozen.json
+# Output harian dashboard (di-regenerate tiap cron run) -- bukan sumber kebenaran.
+data/
 
 # Scratch / artefak run (jangan commit)
 scratch_*

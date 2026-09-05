@@ -1,0 +1,23 @@
+{
+  "freeze_date_utc": "2026-09-05",
+  "criteria_doc": "KRITERIA_EVALUASI.md",
+  "methodology": "Simbol .cache_orderflow (union U1/U2) dgn >=500 bar riwayat listing, diurutkan rata-rata qav (quote volume asli) 30 hari terakhir per 2026-09-04, top 15 diambil apa adanya tanpa kurasi manual.",
+  "note": "JANGAN diedit/ditambah/dikurangi selama 50 trade pertama (lihat KRITERIA_EVALUASI.md). daily_run.py membaca file ini, TIDAK memilih universe dari volume hari ini.",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "ZECUSDT",
+    "BNBUSDT",
+    "DOGEUSDT",
+    "TUTUSDT",
+    "SUIUSDT",
+    "ENAUSDT",
+    "TRUMPUSDT",
+    "UNIUSDT",
+    "PEPEUSDT",
+    "TRXUSDT",
+    "LINKUSDT"
+  ]
+}
