@@ -35,6 +35,19 @@ var manual. Kalau VPS Anda TIDAK diblokir dan `api.binance.com` justru lebih
 cepat, sistem tetap jalan — endpoint dipilih otomatis, cuma urutan cobanya
 yang beda.
 
+**Futures (`/fapi/*`, dipakai `short_scan.py`)** ada di host TERPISAH
+(`fapi.binance.com`) dan TIDAK punya padanan `data-api.binance.vision`.
+Ini bisa saja diblokir juga di jaringan yang sama walau `api.binance.com`
+sudah diperbaiki — tidak sempat diverifikasi dari mesin dev proyek ini
+(kedua-duanya terblokir di sana). Cek manual:
+```bash
+python3 -c "import short_scan as ss; print(ss.check_perp_availability(['BTCUSDT']))"
+```
+Kalau hasilnya `{'BTCUSDT': False}`, host futures terblokir di VPS ini juga —
+`daily_run.py` tetap jalan (gagal aman: semua kandidat short dikeluarkan,
+LONG tidak terpengaruh), tapi sisi short tidak akan pernah menghasilkan
+kandidat sampai konektivitas ini diperbaiki (VPN, host alternatif, dll).
+
 ---
 
 ## 2. Buat bot Telegram
@@ -78,7 +91,7 @@ python3 daily_run.py --force
 ```
 
 Kalau berhasil, pesan masuk ke Telegram Anda dan `data/latest.json` +
-`data/YYYY-MM-DD.json` terisi.
+`data/ide_trade_YYYY-MM-DD.csv` (LONG+SHORT digabung) terisi.
 
 ---
 
@@ -178,8 +191,8 @@ tail -50 daily_run.log        # log internal daily_run.py (logging module)
 ```
 
 Tanda-tanda gagal:
-- `data/YYYY-MM-DD.json` untuk hari ini **tidak ada** -> cron tidak jalan
-  sama sekali, atau gagal sebelum sempat menulis. Cek `cron_daily_run.log`.
+- `data/ide_trade_YYYY-MM-DD.csv` untuk hari ini **tidak ada** -> cron tidak
+  jalan sama sekali, atau gagal sebelum sempat menulis. Cek `cron_daily_run.log`.
 - Tidak ada notifikasi Telegram TAPI `data/latest.json` ter-update -> masalah
   di `send_telegram()` (cek `.env`, cek `daily_run.log` utk baris `ERROR`
   atau `CRITICAL`).
@@ -209,6 +222,7 @@ env -i /bin/sh -c 'cd /path/ke/screening-crypto && .venv/bin/python3 daily_run.p
 | `universe_frozen.json` | 15 simbol dibekukan (`KRITERIA_EVALUASI.md`) — daily_run.py TIDAK fetch universe dari volume hari ini |
 | `.env` | Secret Telegram, TIDAK di-commit |
 | `data/latest.json` | Snapshot terbaru utk dashboard, TIDAK di-commit (regenerated tiap run) |
-| `data/YYYY-MM-DD.json` | Arsip harian, TIDAK di-commit |
+| `data/ide_trade_YYYY-MM-DD.csv` | Arsip ide trade harian LONG+SHORT, TIDAK di-commit. Keberadaannya jg jadi guard idempotensi (`daily_run.py` skip kalau file hari ini sudah ada) |
+| `short_scan.py` | Kandidat SHORT (belum pernah diuji), cek perp `/fapi/*` (host beda dari spot, lihat bagian 1) |
 | `dashboard.html` | Statis, baca `data/latest.json` lewat `fetch()` — sajikan dari root proyek |
 | `journal.jsonl` | Data trading pribadi, TIDAK di-commit, dibaca `daily_run.py` (read-only) |

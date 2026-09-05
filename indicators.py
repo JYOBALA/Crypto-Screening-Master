@@ -158,6 +158,39 @@ def last_impulse_swing(df: pd.DataFrame, order: int = 5, min_move_pct: float = 1
     return None
 
 
+def last_impulse_swing_down(df: pd.DataFrame, order: int = 5, min_move_pct: float = 12.0):
+    """Cermin last_impulse_swing(): gelombang impuls TURUN terakhir (swing high ->
+    swing low sesudahnya). Dipakai modul kandidat SHORT (belum pernah diuji --
+    lihat KRITERIA_EVALUASI.md/RINGKASAN_AKHIR.md, sisi long saja yang sudah diuji)."""
+    highs, lows = find_pivots(df, order)
+    if not highs or not lows:
+        return None
+
+    for lo_idx, lo_price in reversed(lows):
+        prior_highs = [(i, p) for i, p in highs if i < lo_idx]
+        if not prior_highs:
+            continue
+        window = [(i, p) for i, p in prior_highs if lo_idx - i <= 90]
+        if not window:
+            continue
+        hi_idx, hi_price = max(window, key=lambda x: x[1])
+        move = (hi_price - lo_price) / hi_price * 100
+        bars = lo_idx - hi_idx
+        if move >= min_move_pct and bars >= 3:
+            # Perbarui swing low bila harga sudah melewatinya sejak pivot terbentuk
+            tail = df["low"].iloc[lo_idx:]
+            run_low = float(tail.min())
+            if run_low < lo_price:
+                lo_price = run_low
+                lo_idx = lo_idx + int(np.argmin(tail.values))
+                move = (hi_price - lo_price) / hi_price * 100
+                bars = lo_idx - hi_idx
+            return {"high_idx": hi_idx, "high": hi_price,
+                    "low_idx": lo_idx, "low": lo_price,
+                    "move_pct": move, "bars": bars}
+    return None
+
+
 def fib_levels(low: float, high: float) -> dict:
     rng = high - low
     return {

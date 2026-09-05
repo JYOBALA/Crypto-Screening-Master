@@ -2,7 +2,8 @@
 """
 daily_run.py — Jalankan sekali sehari (cron), HANYA untuk 15 koin di
 `universe_frozen.json` (TIDAK fetch universe dari volume hari ini — lihat
-CLAUDE.md soal bahaya itu). Tulis data/latest.json + arsip data/YYYY-MM-DD.json
+CLAUDE.md soal bahaya itu). Tulis SATU file ide trade harian
+data/ide_trade_YYYY-MM-DD.csv (LONG + SHORT digabung) + data/latest.json
 untuk dashboard.html, lalu kirim ringkasan ke Telegram. Exit setelah selesai —
 tidak ada proses yang menetap (dijadwalkan lewat cron, lihat DEPLOY.md).
 
@@ -13,6 +14,11 @@ DAN guard idempotensi di bawah — jalan dua kali di hari yang sama tidak
 mengirim dua notifikasi). Tidak ada kata "beli"/"sinyal" (di luar baris
 disclaimer wajib)/"peluang"/"entry sekarang" di pesan — divalidasi otomatis
 sebelum kirim, lihat _check_forbidden().
+
+SISI SHORT (short_scan.py) belum pernah diuji sama sekali -- beda dari long
+yang sudah 5x null. Kolom `validasi` di CSV dan baris terpisah di Telegram
+menandai ini secara eksplisit di SETIAP kandidat short, bukan cuma sekali di
+footer.
 
     python daily_run.py            # jalan normal (skip kalau sudah jalan hari ini)
     python daily_run.py --force    # paksa jalan ulang & kirim ulang notifikasi hari ini
@@ -28,14 +34,16 @@ import os
 import sys
 from datetime import datetime, timezone
 
+import pandas as pd
 import requests
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import screener as scr    # noqa: E402  (BASE_CANDIDATES/_switch_base/_force_utf8 via import,
-                           #   fetch_for_mode, DEFAULT_CFG -- WAJIB reuse, lihat CLAUDE.md)
-import scoring             # noqa: E402
-import journal as jr       # noqa: E402  (load_clean_records/open_positions/compute_review --
-                           #   satu sumber kebenaran, sama dipakai `journal.py review`)
+import screener as scr      # noqa: E402  (BASE_CANDIDATES/_switch_base/_force_utf8 via import,
+                             #   fetch_for_mode, DEFAULT_CFG -- WAJIB reuse, lihat CLAUDE.md)
+import scoring                # noqa: E402
+import short_scan as ss      # noqa: E402  (kandidat SHORT -- BELUM PERNAH DIUJI, lihat modul itu)
+import journal as jr         # noqa: E402  (load_clean_records/open_positions/compute_review --
+                             #   satu sumber kebenaran, sama dipakai `journal.py review`)
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH = os.path.join(ROOT, ".env")
@@ -45,11 +53,16 @@ LATEST_PATH = os.path.join(DATA_DIR, "latest.json")
 LOG_PATH = os.path.join(ROOT, "daily_run.log")
 
 MAX_OPEN_POSITIONS = 3          # sama dgn KRITERIA_EVALUASI.md
-MAX_CANDIDATES_IN_MESSAGE = 5
+MAX_CANDIDATES_IN_MESSAGE = 5    # per sisi (long/short)
 DASHBOARD_MIN_TRADES_FOR_STATS = 25   # beda dari MIN_TRADES_FOR_CONCLUSION jurnal (50) --
                                        # ini cuma gerbang tampil di dashboard, lihat KRITERIA_EVALUASI.md
 DISCLAIMER = "Skor tidak prediktif (5 uji null). Ini penyaring perhatian, bukan sinyal."
+SHORT_DISCLAIMER = "Kandidat SHORT belum pernah diuji (beda dari long yang sudah 5x null)."
 FORBIDDEN_WORDS = ("beli", "peluang", "entry sekarang")
+CSV_COMMENT = (
+    "# IDE TRADE untuk dicek chart manual. BUKAN sinyal. Skor terbukti tidak\n"
+    "# prediktif (5 uji null, lihat RINGKASAN_AKHIR.md). Sisi short belum diuji.\n"
+)
 
 
 def _load_dotenv(path: str) -> None:
@@ -124,26 +137,48 @@ def send_telegram(text: str) -> bool:
         return False
 
 
-def compose_message(date_str: str, regime: dict, n_open: int, candidates: list[dict],
-                     failed: list[str]) -> str:
+def _format_side_block(label: str, candidates: list[dict], extra_disclaimer: str | None) -> list[str]:
+    lines = [f"Kandidat {label} untuk dicek chart ({len(candidates)}):"]
+    if extra_disclaimer:
+        lines.append(extra_disclaimer)
+    for r in candidates[:MAX_CANDIDATES_IN_MESSAGE]:
+        p = r["plan"]
+        fund = ""
+        if r.get("funding_rate_last_8h_pct") is not None:
+            fund = f"  funding 8j terakhir: {r['funding_rate_last_8h_pct']:+.4f}%"
+        lines.append(f"- {r['symbol']}  skor {r['total']}/100 ({r['grade']})  harga {r['price']}{fund}")
+        lines.append(f"  entry {p['entry']}  SL {p['sl']}  TP1 {p['tp1']} (R:R 1:{p['rr1']})")
+        lines.append(f"  https://www.tradingview.com/chart/?symbol=BINANCE:{r['symbol']}")
+    rest = len(candidates) - MAX_CANDIDATES_IN_MESSAGE
+    if rest > 0:
+        lines.append(f"...dan {rest} lainnya (lihat CSV/dashboard).")
+    return lines
+
+
+def compose_message(date_str: str, regime: dict, n_open: int,
+                     long_cands: list[dict], short_cands: list[dict],
+                     failed: list[str], no_perp: list[str]) -> str:
     lines = [f"Screener harian -- {date_str}",
              f"BTC: {regime['status']} -- {regime['message']}",
              f"Posisi terbuka: {n_open}/{MAX_OPEN_POSITIONS}", ""]
 
     if n_open >= MAX_OPEN_POSITIONS:
         lines.append("Batas 3 posisi tercapai. Tidak ada yang perlu dicek hari ini.")
-    elif not candidates:
-        lines.append("Tidak ada kandidat untuk dicek chart hari ini.")
     else:
-        lines.append(f"Kandidat untuk dicek chart ({len(candidates)}):")
-        for r in candidates[:MAX_CANDIDATES_IN_MESSAGE]:
-            p = r["plan"]
-            lines.append(f"- {r['symbol']}  skor {r['total']}/100 ({r['grade']})  harga {r['price']}")
-            lines.append(f"  entry {p['entry']}  SL {p['sl']}  TP1 {p['tp1']} (R:R 1:{p['rr1']})")
-            lines.append(f"  https://www.tradingview.com/chart/?symbol=BINANCE:{r['symbol']}")
-        rest = len(candidates) - MAX_CANDIDATES_IN_MESSAGE
-        if rest > 0:
-            lines.append(f"...dan {rest} lainnya (lihat dashboard).")
+        if long_cands:
+            lines += _format_side_block("LONG", long_cands, None)
+        else:
+            lines.append("Tidak ada kandidat LONG untuk dicek chart hari ini.")
+        lines.append("")
+        if short_cands:
+            lines += _format_side_block("SHORT", short_cands, SHORT_DISCLAIMER)
+        else:
+            lines.append("Tidak ada kandidat SHORT untuk dicek chart hari ini.")
+
+    if no_perp:
+        lines.append("")
+        lines.append(f"{len(no_perp)} koin di universe tidak punya perpetual futures -- "
+                      f"dikeluarkan dari kandidat short: {', '.join(no_perp)}")
 
     if failed:
         lines.append("")
@@ -153,16 +188,18 @@ def compose_message(date_str: str, regime: dict, n_open: int, candidates: list[d
     return "\n".join(lines)
 
 
-def _candidate_view(r: dict) -> dict:
+def _candidate_view(r: dict, side: str, validasi: str) -> dict:
     p = r["plan"]
     return {
-        "symbol": r["symbol"], "total": r["total"], "grade": r["grade"],
+        "side": side, "symbol": r["symbol"], "total": r["total"], "grade": r["grade"],
         "vetoed": r["vetoed"], "veto_reasons": r["veto_reasons"],
         "s_volume": r["s_volume"], "s_stochrsi": r["s_stochrsi"], "s_fib": r["s_fib"],
         "s_sr": r["s_sr"], "s_pattern": r["s_pattern"],
         "price": r["price"],
         "entry": p["entry"], "sl": p["sl"], "tp1": p["tp1"], "tp2": p["tp2"],
         "rr1": p["rr1"], "rr2": p["rr2"],
+        "funding_rate_last_8h_pct": r.get("funding_rate_last_8h_pct"),
+        "validasi": validasi,
         "tv_url": f"https://www.tradingview.com/chart/?symbol=BINANCE:{r['symbol']}",
     }
 
@@ -188,6 +225,16 @@ def _enrich_open_position(e: dict, price_lookup: dict) -> dict:
     }
 
 
+def write_csv(path: str, rows: list[dict]) -> None:
+    cols = ["side", "symbol", "total", "grade", "price", "entry", "sl", "tp1", "tp2",
+            "rr1", "rr2", "s_volume", "s_stochrsi", "s_fib", "s_sr", "s_pattern",
+            "funding_rate_last_8h_pct", "validasi", "tv_url"]
+    df = pd.DataFrame(rows, columns=cols)
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(CSV_COMMENT)
+        df.to_csv(f, index=False)
+
+
 # ─────────────────────────────────────────────────────────────
 
 def main():
@@ -204,9 +251,9 @@ def main():
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     os.makedirs(DATA_DIR, exist_ok=True)
-    archive_path = os.path.join(DATA_DIR, f"{today}.json")
+    csv_path = os.path.join(DATA_DIR, f"ide_trade_{today}.csv")
 
-    if os.path.exists(archive_path) and not args.force:
+    if os.path.exists(csv_path) and not args.force:
         logging.info(f"{today}: sudah dijalankan hari ini, keluar (pakai --force utk paksa ulang).")
         print(f"{today}: sudah dijalankan hari ini. Pakai --force utk paksa ulang.")
         return
@@ -221,30 +268,48 @@ def main():
             raise RuntimeError("gagal mengambil data BTCUSDT")
         regime = scoring.btc_regime(btc_bias)
 
-        results, failed = [], []
+        perp_avail = ss.check_perp_availability(universe)
+        no_perp = [s for s in universe if not perp_avail[s]]
+        logging.info(f"perp tersedia: {sum(perp_avail.values())}/{len(universe)}. "
+                     f"Tidak bisa di-short: {no_perp}")
+
+        long_results, short_results, failed = [], [], []
         for sym in universe:
             bias, htf = scr.fetch_for_mode(sym, "daily", True)
             if bias is None:
                 failed.append(sym)
                 continue
-            r = scoring.evaluate(sym, bias, htf, regime, cfg)
-            if r is None:
+            rl = scoring.evaluate(sym, bias, htf, regime, cfg)
+            if rl is not None:
+                long_results.append(rl)
+            else:
                 failed.append(sym)
-                continue
-            results.append(r)
-        results.sort(key=lambda r: -r["total"])
+
+            if perp_avail[sym]:
+                rs = ss.evaluate_short(sym, bias, htf, regime, cfg)
+                if rs is not None:
+                    short_results.append(rs)
+
+        long_results.sort(key=lambda r: -r["total"])
+        short_results.sort(key=lambda r: -r["total"])
     except Exception as e:      # noqa: BLE001
         logging.exception("daily_run gagal saat mengambil/menilai data")
         send_telegram(f"[ERROR] daily_run.py gagal pada {today}: {e}\n"
                        f"Cek daily_run.log di VPS. Tidak ada data baru hari ini.")
         sys.exit(1)
 
-    candidates = [r for r in results if not r["vetoed"] and r["total"] >= cfg["min_score"]]
+    long_cands = [r for r in long_results if not r["vetoed"] and r["total"] >= cfg["min_score"]]
+    short_cands = [r for r in short_results if not r["vetoed"] and r["total"] >= cfg["min_score"]]
+
+    csv_rows = ([_candidate_view(r, "LONG", ss.VALIDASI_LONG) for r in long_cands]
+                + [_candidate_view(r, "SHORT", ss.VALIDASI_SHORT) for r in short_cands])
+    csv_rows.sort(key=lambda r: -r["total"])
+    write_csv(csv_path, csv_rows)
 
     records = jr.load_clean_records()
     open_pos = jr.open_positions(records)
     review = jr.compute_review(records)
-    price_lookup = {r["symbol"]: r["price"] for r in results}
+    price_lookup = {r["symbol"]: r["price"] for r in long_results}
     open_pos_view = [_enrich_open_position(e, price_lookup) for e in open_pos]
 
     payload = _json_safe({
@@ -252,8 +317,8 @@ def main():
         "mode": "daily",
         "universe_freeze_date": uni_meta.get("freeze_date_utc"),
         "regime": regime,
-        "candidates": [_candidate_view(r) for r in candidates],
-        "all_results": [_candidate_view(r) for r in results],
+        "candidates": csv_rows,
+        "no_perp_symbols": no_perp,
         "failed_symbols": failed,
         "open_positions": open_pos_view,
         "journal_review": review,
@@ -262,15 +327,14 @@ def main():
 
     with open(LATEST_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
-    with open(archive_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
 
-    msg = compose_message(today, regime, len(open_pos), candidates, failed)
+    msg = compose_message(today, regime, len(open_pos), long_cands, short_cands, failed, no_perp)
     ok = send_telegram(msg)
-    logging.info(f"selesai: {len(candidates)} kandidat, {len(failed)} gagal, "
+    logging.info(f"selesai: {len(long_cands)} long, {len(short_cands)} short, {len(failed)} gagal, "
                  f"{len(open_pos)} posisi terbuka, telegram_ok={ok}")
-    print(f"Selesai. {len(candidates)} kandidat, {len(open_pos)} posisi terbuka, "
-          f"telegram {'terkirim' if ok else 'GAGAL -- cek daily_run.log'}.")
+    print(f"Selesai. {len(long_cands)} kandidat LONG, {len(short_cands)} kandidat SHORT, "
+          f"{len(open_pos)} posisi terbuka, telegram {'terkirim' if ok else 'GAGAL -- cek daily_run.log'}.")
+    print(f"CSV: {csv_path}")
 
 
 if __name__ == "__main__":
