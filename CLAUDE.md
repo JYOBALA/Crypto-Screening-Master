@@ -30,6 +30,9 @@ python verify.py                          # gerbang mutu setelah edit kode
 python fetch_history.py --start 2021-01-01   # isi .cache_history/ (sekali, untuk backtest)
 python backtest.py --history                 # backtest walk-forward di arsip panjang
 python fetch_orderflow.py --universe u2      # isi .cache_orderflow/ (kolom qav/trades/tbbav/tbqav)
+python journal.py new SYMBOL                 # catat kondisi objektif + tesis sebelum entry
+python journal.py close ID --exit-price X --exit-reason SL   # catat exit aktual
+python journal.py review                     # kalibrasi keyakinan vs hasil (butuh >=50 trade utk kesimpulan)
 ```
 
 
@@ -52,6 +55,7 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `regime_test.py` | Tahap 1 uji regime: 5 detektor walk-forward, return 30-hari-ke-depan universe saat BULL vs BEAR |
 | `fetch_orderflow.py` | Unduh sejarah harian TERMASUK kolom aliran order (qav/trades/tbbav/tbqav) yang dibuang `fetch_klines()`/`fetch_history.py` → `.cache_orderflow/`. Universe U1/U2 dibekukan sekali (`universe_<u>.json`) |
 | `orderflow_test.py` | Uji cross-sectional (BUKAN simulasi trade): IC Spearman harian, 5 fitur order-flow × 3 horizon × 2 universe, holdout 30% simbol |
+| `journal.py` | Jurnal trade sebagai instrumen riset: tangkap kondisi objektif `evaluate()` + tesis/keyakinan/keputusan user, append-only + hash SHA256 per record → `journal.jsonl` (gitignored). `review` mengukur kalibrasi keyakinan & diskresi-vs-skor, TIDAK pernah menyarankan ambil/lewati |
 
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 

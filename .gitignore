@@ -4,6 +4,9 @@
 .cache_history/
 # Arsip order flow (dibuat fetch_orderflow.py, besar; termasuk universe_*.json)
 .cache_orderflow/
+# Jurnal trade (journal.py) -- data pribadi user, tidak otomatis dicommit.
+# Append-only + ter-hash; backup manual jadi tanggung jawab user kalau mau disimpan.
+journal.jsonl
 __pycache__/
 *.pyc
 
