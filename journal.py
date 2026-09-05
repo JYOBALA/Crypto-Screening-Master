@@ -276,8 +276,8 @@ def load_clean_records() -> list[dict]:
 
 
 def open_positions(records: list[dict] | None = None) -> list[dict]:
-    """Daftar trade AMBIL yang belum ada event exit-nya. Dipakai jurnal review
-    DAN dashboard (lewat daily_run.py) -- satu sumber kebenaran posisi terbuka."""
+    """Daftar trade AMBIL yang belum ada event exit-nya. Dipakai `journal.py review`
+    DAN daily_run.py (hitung posisi terbuka utk gerbang batas 3 posisi)."""
     records = records if records is not None else load_clean_records()
     entries = {r["trade_id"]: r for r in records if r["event"] == "entry"}
     exits = {r["trade_id"]: r for r in records if r["event"] == "exit"}
@@ -285,10 +285,10 @@ def open_positions(records: list[dict] | None = None) -> list[dict]:
 
 
 def compute_review(records: list[dict] | None = None) -> dict:
-    """Hitung seluruh statistik review sebagai dict (tanpa print) supaya bisa
-    dipakai ulang oleh `journal.py review` (cetak ke terminal) MAUPUN
-    daily_run.py (tulis ke data/latest.json utk dashboard) -- satu sumber
-    kebenaran, tidak dihitung dua kali dengan logika yang bisa berbeda."""
+    """Hitung seluruh statistik review sebagai dict (tanpa print) supaya
+    `journal.py review` (cetak ke terminal) tidak perlu menghitung ulang
+    logika yang sama di tempat lain kalau suatu saat dibutuhkan lagi (mis.
+    dashboard.html dulu memakai ini sebelum dicabut 2026-09-05)."""
     records = records if records is not None else load_clean_records()
     entries = {r["trade_id"]: r for r in records if r["event"] == "entry"}
     exits = {r["trade_id"]: r for r in records if r["event"] == "exit"}

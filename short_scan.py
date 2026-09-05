@@ -11,7 +11,7 @@ long (cermin logika, bukan logika baru yang diarang), TAPI bukti dasarnya
 JAUH lebih lemah daripada long -- long minimal sudah diukur dan gagal;
 short belum diukur sama sekali. JANGAN PERNAH menampilkan hasil modul ini
 seolah tervalidasi. Setiap pemanggil WAJIB menyertakan disclaimer ini di
-output (CSV/Telegram/dashboard) -- lihat konstanta VALIDASI_SHORT di bawah.
+output (ide_trade.xlsx/Telegram) -- lihat konstanta VALIDASI_SHORT di bawah.
 
 Dua hal yang BUKAN bagian dari long dan wajib dicek sebelum menghasilkan
 kandidat short:

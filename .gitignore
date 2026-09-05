@@ -19,7 +19,12 @@ __pycache__/
 # ...tapi universe yang dibekukan untuk KRITERIA_EVALUASI.md/daily_run.py
 # WAJIB di-commit -- itu bukan output, itu definisi eksperimen.
 !universe_frozen.json
-# Output harian dashboard (di-regenerate tiap cron run) -- bukan sumber kebenaran.
+
+# Spreadsheet ide trade harian (daily_run.py) -- data operasional yang terus
+# bertambah tiap hari (baris disisipkan tiap run), bukan kode. TIDAK di-commit.
+ide_trade.xlsx
+# Fallback DARURAT kalau ide_trade.xlsx terkunci saat cron jalan (lihat
+# DEPLOY.md bag. 5) -- juga tidak di-commit.
 data/
 
 # Scratch / artefak run (jangan commit)

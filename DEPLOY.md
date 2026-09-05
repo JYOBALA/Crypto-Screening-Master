@@ -1,9 +1,8 @@
 # Deploy — VPS Ubuntu
 
-Setup untuk menjalankan `daily_run.py` via cron sekali sehari + menyajikan
-`dashboard.html` secara privat. Baca `KRITERIA_EVALUASI.md` dan
-`RINGKASAN_AKHIR.md` dulu kalau belum — VPS ini menjalankan penyaring
-perhatian, bukan sinyal beli otomatis.
+Setup untuk menjalankan `daily_run.py` via cron sekali sehari. Baca
+`KRITERIA_EVALUASI.md` dan `RINGKASAN_AKHIR.md` dulu kalau belum — VPS ini
+menjalankan penyaring perhatian, bukan sinyal beli otomatis.
 
 ---
 
@@ -90,8 +89,8 @@ hari yang sama di produksi — itu untuk testing saja):
 python3 daily_run.py --force
 ```
 
-Kalau berhasil, pesan masuk ke Telegram Anda dan `data/latest.json` +
-`data/ide_trade_YYYY-MM-DD.csv` (LONG+SHORT digabung) terisi.
+Kalau berhasil, pesan masuk ke Telegram Anda dan `ide_trade.xlsx` (baris hari
+ini disisipkan di paling atas, di bawah baris catatan+header) terisi.
 
 ---
 
@@ -117,69 +116,18 @@ sebelum menulis jadwal cron (cron memakai jam lokal sistem, bukan UTC).
 
 Edit crontab: `crontab -e`, tempel baris di atas (sesuaikan path).
 
----
-
-## 5. Menyajikan dashboard — BIND KE 127.0.0.1 SAJA
-
-**JANGAN** expose ke internet publik — `data/latest.json` mencerminkan isi
-`journal.jsonl` (trade pribadi, tesis, keyakinan). Cara paling sederhana:
-
-```bash
-cd /path/ke/screening-crypto
-python3 -m http.server 8000 --bind 127.0.0.1
-```
-
-Biarkan berjalan di `tmux`/`screen`, atau buat service systemd (opsional,
-lebih tahan restart VPS):
-
-```ini
-# /etc/systemd/system/screener-dashboard.service
-[Unit]
-Description=Dashboard screener (127.0.0.1 saja)
-After=network.target
-
-[Service]
-WorkingDirectory=/path/ke/screening-crypto
-ExecStart=/usr/bin/python3 -m http.server 8000 --bind 127.0.0.1
-Restart=always
-User=<user-non-root-anda>
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now screener-dashboard
-```
-
-### Akses dari laptop Anda — SSH tunnel
-
-```bash
-ssh -L 8000:127.0.0.1:8000 user@ip-vps-anda
-```
-
-Lalu buka `http://127.0.0.1:8000/dashboard.html` di browser Anda. Selama
-tunnel SSH terbuka, dashboard bisa diakses; tutup terminal SSH untuk memutus
-akses.
-
-### Kalau TETAP ingin akses publik (tidak disarankan)
-
-Data trading pribadi (`journal.jsonl` lewat `data/latest.json`) akan bisa
-dilihat siapa saja yang tahu URL-nya kalau di-expose tanpa proteksi. Minimum
-mutlak kalau Anda tetap memilih ini:
-1. **HTTPS** (mis. lewat Caddy/nginx + Let's Encrypt certbot) — tanpa ini,
-   traffic (termasuk kalau nanti ditambah auth) berjalan polos.
-2. **HTTP Basic Auth** di depan `http.server` (nginx `auth_basic`, atau ganti
-   `http.server` dengan nginx yang serve folder ini + `auth_basic`).
-3. Idealnya juga: batasi IP sumber lewat firewall (`ufw allow from <IP-anda>`).
-
-Ini tetap jauh lebih lemah daripada SSH tunnel + bind localhost. Default dan
-rekomendasi proyek ini adalah **127.0.0.1 + SSH tunnel**, titik.
+`ide_trade.xlsx` ada di working directory repo di VPS. Untuk melihatnya,
+sinkronkan ke mesin lokal Anda (mis. `scp user@vps:/path/ke/screening-crypto/ide_trade.xlsx .`)
+lalu buka di Excel — **tutup dulu salinan lokal sebelum `scp` menimpanya**,
+dan lihat bagian 6 soal file terkunci kalau sedang dibuka di sisi VPS
+(seharusnya tidak pernah terjadi karena tidak ada proses yang membuka Excel
+di server, tapi lihat penanganan `PermissionError` di `daily_run.py` kalau
+suatu saat file disinkronkan lewat mekanisme yang menguncinya, mis. Dropbox/
+OneDrive sync sedang berjalan).
 
 ---
 
-## 6. Cek log kalau cron "gagal diam-diam"
+## 5. Cek log kalau cron "gagal diam-diam"
 
 Cron yang gagal biasanya tidak muncul di mana-mana kalau outputnya tidak
 diarahkan. Baris crontab di atas SUDAH mengarahkan stdout+stderr ke
@@ -191,11 +139,16 @@ tail -50 daily_run.log        # log internal daily_run.py (logging module)
 ```
 
 Tanda-tanda gagal:
-- `data/ide_trade_YYYY-MM-DD.csv` untuk hari ini **tidak ada** -> cron tidak
-  jalan sama sekali, atau gagal sebelum sempat menulis. Cek `cron_daily_run.log`.
-- Tidak ada notifikasi Telegram TAPI `data/latest.json` ter-update -> masalah
-  di `send_telegram()` (cek `.env`, cek `daily_run.log` utk baris `ERROR`
-  atau `CRITICAL`).
+- Baris tanggal hari ini **tidak muncul** di paling atas `ide_trade.xlsx` ->
+  cron tidak jalan sama sekali, atau gagal sebelum sempat menulis. Cek
+  `cron_daily_run.log`.
+- Ada file `data/ide_trade_YYYY-MM-DD.csv` -> `ide_trade.xlsx` terkunci saat
+  cron jalan (lihat pesan `PermissionError` di `daily_run.log`); data hari
+  itu AMAN di CSV fallback tapi belum tergabung. Tutup apa pun yang mengunci
+  `ide_trade.xlsx`, lalu `python3 daily_run.py --force` utk menggabungkannya.
+- Tidak ada notifikasi Telegram TAPI baris hari ini ADA di `ide_trade.xlsx`
+  -> masalah di `send_telegram()` (cek `.env`, cek `daily_run.log` utk baris
+  `ERROR` atau `CRITICAL`).
 - `daily_run.log` berisi `[ERROR] daily_run.py gagal` -> masalah jaringan/data,
   cek traceback lengkap di atas baris itu (`logging.exception` menulis
   traceback penuh).
@@ -221,8 +174,7 @@ env -i /bin/sh -c 'cd /path/ke/screening-crypto && .venv/bin/python3 daily_run.p
 | `daily_run.py` | Orkestrasi harian (cron) — TIDAK menetap sbg proses |
 | `universe_frozen.json` | 15 simbol dibekukan (`KRITERIA_EVALUASI.md`) — daily_run.py TIDAK fetch universe dari volume hari ini |
 | `.env` | Secret Telegram, TIDAK di-commit |
-| `data/latest.json` | Snapshot terbaru utk dashboard, TIDAK di-commit (regenerated tiap run) |
-| `data/ide_trade_YYYY-MM-DD.csv` | Arsip ide trade harian LONG+SHORT, TIDAK di-commit. Keberadaannya jg jadi guard idempotensi (`daily_run.py` skip kalau file hari ini sudah ada) |
+| `ide_trade.xlsx` | SATU spreadsheet yang bertambah tiap hari (LONG+SHORT, baris terbaru di atas), TIDAK di-commit. Baris tanggal hari ini jg jadi guard idempotensi |
+| `data/ide_trade_YYYY-MM-DD.csv` | Fallback DARURAT — hanya muncul kalau `ide_trade.xlsx` terkunci saat cron jalan. Kalau ada, gabungkan manual dgn `--force` setelah file dibuka |
 | `short_scan.py` | Kandidat SHORT (belum pernah diuji), cek perp `/fapi/*` (host beda dari spot, lihat bagian 1) |
-| `dashboard.html` | Statis, baca `data/latest.json` lewat `fetch()` — sajikan dari root proyek |
-| `journal.jsonl` | Data trading pribadi, TIDAK di-commit, dibaca `daily_run.py` (read-only) |
+| `journal.jsonl` | Data trading pribadi, TIDAK di-commit, dibaca `daily_run.py` (read-only, hanya utk hitung posisi terbuka) |
