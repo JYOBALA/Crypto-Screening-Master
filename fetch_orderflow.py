@@ -57,6 +57,21 @@ WEIGHT_THROTTLE_FRAC = 0.70     # jeda kalau used-weight lewat 70% batas
 WEIGHT_THROTTLE_SLEEP = 5.0
 _weight_limit_1m: int | None = None
 
+# scr.STABLES/EXCLUDE_TOKENS ditulis sebelum Binance meluncurkan xStocks (saham/ETF
+# ter-tokenisasi) dan beberapa aset pegged baru — keduanya lolos filter lama karena
+# bukan stablecoin/token leverage dalam pengertian kripto biasa. Didaftar eksplisit
+# (bukan pola nama, supaya tidak salah buang token kripto asli yang kebetulan mirip,
+# mis. ARB berakhiran "B" tapi itu Arbitrum, bukan saham). Keduanya dikeluarkan dari
+# universe order flow: xStocks bukan kripto sama sekali; aset pegged emas/stablecoin
+# baru punya dinamika harga yang secara struktural berbeda dari kripto volatil.
+EXCLUDE_TOKENIZED_EQUITY = {  # xStocks: <TICKER>B, quote USDT
+    "AAPLB", "TSLAB", "NVDAB", "MSTRB", "INTCB", "COINB", "CRCLB",
+    "MRVLB", "SPCXB", "SNDKB", "SOXLB", "SOXSB", "SPYB", "QQQB", "HOODB",
+}
+EXCLUDE_PEGGED_EXTRA = {  # stablecoin/aset pegged baru, tidak ada di scr.STABLES
+    "BFUSD", "XUSD", "USDE", "RLUSD", "EURI", "PAXG", "XAUT",
+}
+
 
 # ─────────────────────────────────────────────────────────────
 # Universe U1/U2 — dibangun sekali dari snapshot volume 24h, lalu dibekukan
@@ -85,6 +100,8 @@ def build_universe(key: str) -> tuple[list[str], dict]:
             continue
         base = s.get("baseAsset", "")
         if base in scr.STABLES or any(base.endswith(x) for x in scr.EXCLUDE_TOKENS):
+            continue
+        if base in EXCLUDE_TOKENIZED_EQUITY or base in EXCLUDE_PEGGED_EXTRA:
             continue
         sym = s["symbol"]
         if tick.get(sym, 0.0) >= min_usd:
