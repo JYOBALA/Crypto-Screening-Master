@@ -24,9 +24,16 @@ data/
 
 # Scratch / artefak run (jangan commit)
 scratch_*
-backtest_trades_*.csv
-backtest_v2_422pair.csv
-factor_test_signals*.csv
-factor_test_signals_v3.csv
-mechanics_test_trades*.csv
-mechanics_test_trades_v1.csv
+
+# Arsip artefak riset selesai (backtest/factor_test/mechanics_test/dst).
+# Isinya SUDAH di-commit lewat `git mv` sebelum baris ini ditambahkan
+# (lihat commit "bersihkan root: pindahkan artefak riset selesai ke
+# arsip/") -- gitignore tidak melepas file yang sudah dilacak, ini cuma
+# mencegah output scratch BARU di folder ini ikut ter-commit otomatis.
+arsip/*
+!arsip/backtest_trades.csv
+!arsip/orderflow_ic_results.csv
+!arsip/screening_daily_20260831_0619.csv
+!arsip/screening_daily_20260901_0119.csv
+!arsip/screening_gem_20260901_0120.csv
+!arsip/screening_gem_20260901_0135.csv
