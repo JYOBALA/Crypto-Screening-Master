@@ -57,6 +57,14 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `orderflow_test.py` | Uji cross-sectional (BUKAN simulasi trade): IC Spearman harian, 5 fitur order-flow × 3 horizon × 2 universe, holdout 30% simbol |
 | `journal.py` | Jurnal trade sebagai instrumen riset: tangkap kondisi objektif `evaluate()` + tesis/keyakinan/keputusan user, append-only + hash SHA256 per record → `journal.jsonl` (gitignored). `review` mengukur kalibrasi keyakinan & diskresi-vs-skor, TIDAK pernah menyarankan ambil/lewati |
 
+`KRITERIA_EVALUASI.md` — pra-registrasi eksperimen trading manual (universe
+15 koin dibekukan 2026-09-05, kriteria LANJUT/BERHENTI di trade ke-50,
+DITULIS SEBELUM trade pertama). **Jangan diedit setelah trade dimulai.**
+Kalau ada klaim statistik baru yang mau ditambahkan ke sana atau ke sini,
+verifikasi dulu terhadap data mentah — dua klaim di draft awal dokumen itu
+("−40% koin besar vs −83%", "2025 −0,13R/2026 −0,15R") ternyata tidak bisa
+direproduksi/tidak cocok dengan data, dan harus dikoreksi sebelum commit.
+
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 
 ## Sistem skor (jangan diubah tanpa diminta user)
