@@ -68,7 +68,7 @@ diperiksa untuk kombinasi yang lolos 1–4.
 | U2 | taker buy ratio extreme | 20 | −0,0013 | −0,41 | −0,0001 | −0,0025 | ya | +0,0041 | GAGAL | − |
 
 Data mentah lengkap (termasuk angka IC "full-sample", n hari per uji):
-`orderflow_ic_results.csv`.
+`arsip/orderflow_ic_results.csv`.
 
 ## Temuan
 

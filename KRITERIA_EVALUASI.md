@@ -172,7 +172,7 @@ tercatat.
 
 **Koreksi angka:** draft awal menyebut "2025 (−0,13 R) dan 2026 (−0,15 R)".
 Angka itu tidak cocok dengan data mentah. Dicek langsung dari
-`mechanics_test_trades_v1.csv` (varian baseline A, entry acak, `RINGKASAN_AKHIR.md`):
+`arsip/mechanics_test_trades_v1.csv` (varian baseline A, entry acak, `RINGKASAN_AKHIR.md`):
 **2025 ≈ −0,25 R** dan **2026 ≈ −0,10 R** (data 2026 parsial s.d. awal
 September). Rata-rata lintas 6 varian mekanik: 2025 ≈ −0,24 R, 2026 ≈ −0,10 R —
 konsisten dgn baseline.

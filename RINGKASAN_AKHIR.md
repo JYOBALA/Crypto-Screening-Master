@@ -162,5 +162,6 @@ Pengembangan sistem skor ditutup di sini.
 - `fetch_history.py` — pengisi `.cache_history/` (422 pair, 2021–2026).
 - `HIPOTESIS_FAKTOR.md`, `HIPOTESIS_REGIME.md` — protokol pra-registrasi.
 - `FACTOR_TEST_HASIL.md`, `HASIL_REGIME.md` — hasil lengkap.
-- CSV (di-`.gitignore`, dikirim ke user): `backtest_v2_422pair.csv`,
-  `factor_test_signals_v3.csv`, `mechanics_test_trades.csv`.
+- CSV (di `arsip/`, sebagian besar di-`.gitignore`, dikirim ke user):
+  `arsip/backtest_v2_422pair.csv`, `arsip/factor_test_signals_v3.csv`,
+  `arsip/mechanics_test_trades.csv`.
