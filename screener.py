@@ -45,16 +45,19 @@ def _force_utf8() -> None:
 
 _force_utf8()
 
-# Endpoint utama + cadangan (data-api.binance.vision = endpoint data publik).
-# Bisa dipaksa lewat env: export BINANCE_BASE="https://data-api.binance.vision"
+# Endpoint utama + cadangan. data-api.binance.vision didahulukan: api.binance.com
+# diblokir DNS oleh ISP di Indonesia (AAAA -> ::1, A -> IP server pemblokir lokal,
+# bukan Binance -- lihat CLAUDE.md). Override manual masih bisa lewat env:
+# export BINANCE_BASE="https://api.binance.com"
 BASE_CANDIDATES = [
     os.environ.get("BINANCE_BASE"),
-    "https://api.binance.com",
     "https://data-api.binance.vision",
+    "https://api.binance.com",
     "https://api1.binance.com",
 ]
 BASE_CANDIDATES = [b for b in BASE_CANDIDATES if b]
 BASE = BASE_CANDIDATES[0]
+LAST_HEADERS: dict = {}   # header respons terakhir yang berhasil (mis. X-MBX-USED-WEIGHT-1M)
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 
 DEFAULT_CFG = {
@@ -95,23 +98,51 @@ STABLES = {"USDC", "BUSD", "TUSD", "FDUSD", "DAI", "USDP", "EUR", "AEUR",
 # ─────────────────────────────────────────────────────────────
 
 def _get(path: str, params: dict | None = None, retries: int = 3):
+    """GET dengan fallback endpoint. PENTING: kegagalan koneksi/TLS (endpoint
+    diblokir/di-intersepsi, mis. DNS hijack ISP) datang sebagai EXCEPTION
+    (SSLError/ConnectionError/Timeout), bukan status HTTP -- harus ditangani
+    terpisah dari 403/451 (WAF/geo-block via status code). Kalau exception jenis
+    ini ditangkap oleh `except Exception` generik lalu cuma di-retry ke endpoint
+    yang SAMA, script menyerah setelah `retries` percobaan padahal endpoint lain
+    di BASE_CANDIDATES sehat. Maka: pindah endpoint DULU, baru hitung retry."""
     global BASE
-    for i in range(retries):
-        try:
-            r = requests.get(BASE + path, params=params, timeout=20)
-            if r.status_code == 429:
-                time.sleep(5 * (i + 1))
-                continue
-            if r.status_code in (403, 451):      # geo-block / WAF -> coba endpoint lain
-                if _switch_base():
+    last_exc: Exception | None = None
+    bases_tried = 0
+    while bases_tried <= len(BASE_CANDIDATES):
+        for i in range(retries):
+            try:
+                r = requests.get(BASE + path, params=params, timeout=20)
+                if r.status_code == 429:
+                    time.sleep(5 * (i + 1))
                     continue
-            r.raise_for_status()
-            return r.json()
-        except Exception:
-            if i == retries - 1:
-                raise
-            time.sleep(1.5 * (i + 1))
-    return None
+                if r.status_code in (403, 451):      # geo-block / WAF -> coba endpoint lain
+                    last_exc = requests.exceptions.HTTPError(f"{r.status_code} dari {BASE}")
+                    if _switch_base():
+                        bases_tried += 1
+                        break
+                r.raise_for_status()
+                LAST_HEADERS.clear()
+                LAST_HEADERS.update(r.headers)
+                return r.json()
+            except (requests.exceptions.SSLError,
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.Timeout) as e:
+                last_exc = e
+                if _switch_base():                   # endpoint mati -> pindah, JANGAN hitung retry
+                    bases_tried += 1
+                    break
+                if i == retries - 1:
+                    raise
+                time.sleep(1.5 * (i + 1))
+            except Exception as e:
+                last_exc = e
+                if i == retries - 1:
+                    raise
+                time.sleep(1.5 * (i + 1))
+        else:
+            # retry di endpoint ini habis tanpa switch/return -> menyerah total
+            raise last_exc if last_exc else RuntimeError(f"gagal tanpa exception tercatat: {path}")
+    raise last_exc if last_exc else RuntimeError(f"semua endpoint gagal: {path}")
 
 
 def _switch_base() -> bool:

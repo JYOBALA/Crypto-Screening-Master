@@ -2,6 +2,8 @@
 .cache/
 # Arsip sejarah panjang untuk backtest (dibuat fetch_history.py, besar)
 .cache_history/
+# Arsip order flow (dibuat fetch_orderflow.py, besar; termasuk universe_*.json)
+.cache_orderflow/
 __pycache__/
 *.pyc
 

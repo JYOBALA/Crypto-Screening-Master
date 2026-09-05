@@ -12,10 +12,20 @@ Dipakai HANYA untuk uji nilai prediktif aliran order (orderflow_test.py) —
 proyek terpisah dari screener harian, metodologi baru, tidak menyentuh
 `.cache_history/` (dipakai backtest.py) atau cache screener biasa.
 
-    python fetch_orderflow.py                      # semua pair, mulai 2021-01-01
-    python fetch_orderflow.py --start 2020-01-01
-    python fetch_orderflow.py --max-pairs 150 --workers 6
+Memakai infrastruktur `screener.py` apa adanya (BASE_CANDIDATES + _switch_base
++ _force_utf8 lewat efek samping `import screener`) — JANGAN menulis ulang
+endpoint/fallback/encoding di sini. Pola itu sudah 3x menimbulkan bug
+tersendiri (lihat CLAUDE.md): cp1252, fallback endpoint, exception TLS.
+
+    python fetch_orderflow.py --universe u2          # U2: vol24h >= $1jt (~201 pair)
+    python fetch_orderflow.py --universe u1          # U1: vol24h >= $5jt (~78 pair)
     python fetch_orderflow.py --symbols BTCUSDT,ETHUSDT --refresh
+    python fetch_orderflow.py --universe u2 --start 2020-01-01
+
+Universe U1/U2 DIBEKUKAN pada panggilan pertama: daftar simbol + snapshot
+volume disimpan ke .cache_orderflow/universe_<U>.json. Panggilan berikutnya
+memakai file itu apa adanya (tidak menghitung ulang) — lihat HIPOTESIS_ORDERFLOW.md
+("universe dibekukan sekali, tidak disaring ulang per tanggal").
 
 Read-only terhadap akun: tidak ada API key, tidak ada order. Hanya GET publik.
 """
@@ -23,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as cf
+import json
 import os
 import sys
 import time
@@ -31,26 +42,97 @@ from datetime import datetime, timezone
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import screener as scr              # noqa: E402  (_get, dst.)
-import fetch_history as fh          # noqa: E402  (list_usdt_pairs — universe sama persis)
-
-
-def _force_utf8() -> None:
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            if stream and getattr(stream, "encoding", "").lower() not in ("utf-8", "utf8"):
-                stream.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
-
-
-_force_utf8()
+import screener as scr              # noqa: E402  (_get/_switch_base/BASE_CANDIDATES/_force_utf8 via import)
+import fetch_history as fh          # noqa: E402  (list_usdt_pairs — pola exclude stablecoin/leverage sama persis)
 
 OF_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache_orderflow")
 MS_DAY = 86_400_000
 KLINE_COLS = ["open_time", "open", "high", "low", "close", "volume", "close_time",
               "qav", "trades", "tbbav", "tbqav", "ignore"]
 KEEP_COLS = ["open", "high", "low", "close", "volume", "qav", "trades", "tbbav", "tbqav"]
+
+UNIVERSE_MIN_USD = {"u1": 5_000_000.0, "u2": 1_000_000.0}   # HIPOTESIS_ORDERFLOW.md
+
+WEIGHT_THROTTLE_FRAC = 0.70     # jeda kalau used-weight lewat 70% batas
+WEIGHT_THROTTLE_SLEEP = 5.0
+_weight_limit_1m: int | None = None
+
+
+# ─────────────────────────────────────────────────────────────
+# Universe U1/U2 — dibangun sekali dari snapshot volume 24h, lalu dibekukan
+# ─────────────────────────────────────────────────────────────
+
+def build_universe(key: str) -> tuple[list[str], dict]:
+    """Bangun (atau muat, kalau sudah pernah dibangun) universe U1/U2. Dibekukan
+    ke .cache_orderflow/universe_<key>.json supaya TIDAK dihitung ulang di
+    tanggal berbeda — menghitung ulang berarti memakai volume hari-ke-hari
+    sebagai filter seleksi, yang membocorkan info masa depan ke universe."""
+    os.makedirs(OF_DIR, exist_ok=True)
+    frozen_path = os.path.join(OF_DIR, f"universe_{key}.json")
+    if os.path.exists(frozen_path):
+        with open(frozen_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        return meta["symbols"], meta
+
+    min_usd = UNIVERSE_MIN_USD[key]
+    info = scr._get("/api/v3/exchangeInfo")
+    tick = {t["symbol"]: float(t.get("quoteVolume", 0)) for t in scr._get("/api/v3/ticker/24hr")}
+    syms = []
+    for s in info.get("symbols", []):
+        if s.get("quoteAsset") != "USDT" or s.get("status") != "TRADING":
+            continue
+        if not s.get("isSpotTradingAllowed", False):
+            continue
+        base = s.get("baseAsset", "")
+        if base in scr.STABLES or any(base.endswith(x) for x in scr.EXCLUDE_TOKENS):
+            continue
+        sym = s["symbol"]
+        if tick.get(sym, 0.0) >= min_usd:
+            syms.append(sym)
+    syms = sorted(set(syms))
+
+    meta = {
+        "universe": key,
+        "min_usd_volume_24h": min_usd,
+        "snapshot_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "n_symbols": len(syms),
+        "symbols": syms,
+    }
+    with open(frozen_path, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+    return syms, meta
+
+
+# ─────────────────────────────────────────────────────────────
+# Pemantauan rate-limit weight (X-MBX-USED-WEIGHT-1M)
+# ─────────────────────────────────────────────────────────────
+
+def _init_weight_limit() -> None:
+    global _weight_limit_1m
+    try:
+        info = scr._get("/api/v3/exchangeInfo")
+        for rl in info.get("rateLimits", []):
+            if rl.get("rateLimitType") == "REQUEST_WEIGHT" and rl.get("interval") == "MINUTE":
+                _weight_limit_1m = int(rl.get("limit"))
+                break
+    except Exception:
+        pass
+    if not _weight_limit_1m:
+        _weight_limit_1m = 6000     # default aman Binance kalau exchangeInfo gagal ditarik
+
+
+def _throttle_if_near_limit() -> None:
+    """Header X-MBX-USED-WEIGHT-1M spesifik Binance; endpoint cadangan yang tidak
+    mengirimkannya (mis. data-api.binance.vision) diam-diam dilewati -- tidak ada
+    info untuk dipantau, bukan error."""
+    try:
+        used = int(scr.LAST_HEADERS.get("X-MBX-USED-WEIGHT-1M", 0))
+    except Exception:
+        return
+    if used and _weight_limit_1m and used / _weight_limit_1m > WEIGHT_THROTTLE_FRAC:
+        print(f"   (weight {used}/{_weight_limit_1m} > {WEIGHT_THROTTLE_FRAC:.0%} -> jeda {WEIGHT_THROTTLE_SLEEP}s)",
+              flush=True)
+        time.sleep(WEIGHT_THROTTLE_SLEEP)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -72,6 +154,7 @@ def fetch_full_history_of(symbol: str, start_ms: int, interval: str = "1d") -> p
             })
         except Exception:
             return None
+        _throttle_if_near_limit()
         if not raw:
             break
         all_rows.extend(raw)
@@ -82,7 +165,7 @@ def fetch_full_history_of(symbol: str, start_ms: int, interval: str = "1d") -> p
         if nxt <= cur:
             break
         cur = nxt
-        time.sleep(0.15)
+        time.sleep(0.2)                     # jeda antar request, per SOP order-flow
 
     if not all_rows:
         return None
@@ -100,6 +183,9 @@ def fetch_full_history_of(symbol: str, start_ms: int, interval: str = "1d") -> p
 
 
 def process(symbol: str, start_ms: int, refresh: bool) -> tuple[str, int, str]:
+    """Progres per simbol disimpan segera setelah unduh (parquet per simbol) —
+    kalau proses terputus, jalankan ulang perintah yang sama: simbol yang sudah
+    ada file-nya dilewati (kecuali --refresh), lanjut dari simbol berikutnya."""
     path = os.path.join(OF_DIR, f"{symbol}_1d.parquet")
     if os.path.exists(path) and not refresh:
         try:
@@ -124,10 +210,13 @@ def main():
     ap = argparse.ArgumentParser(description="Unduh sejarah harian + kolom aliran order")
     ap.add_argument("--start", default="2021-01-01",
                     help="Tanggal mulai (YYYY-MM-DD). Default sama dengan fetch_history.py.")
+    ap.add_argument("--universe", choices=["u1", "u2"], default=None,
+                    help="u1 = vol24h >= $5jt (~78 pair), u2 = vol24h >= $1jt (~201 pair). "
+                         "Dibekukan sekali ke .cache_orderflow/universe_<u>.json.")
     ap.add_argument("--max-pairs", type=int, default=0,
-                    help="Batasi jumlah pair (0 = semua pair USDT TRADING, sama seperti fetch_history.py).")
+                    help="Batasi jumlah pair kalau TIDAK pakai --universe (0 = semua pair USDT TRADING).")
     ap.add_argument("--symbols", default=None, help="Paksa daftar simbol tertentu (dipisah koma)")
-    ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--refresh", action="store_true", help="Unduh ulang walau parquet sudah ada")
     args = ap.parse_args()
 
@@ -135,10 +224,20 @@ def main():
     start_dt = datetime.strptime(args.start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     start_ms = int(start_dt.timestamp() * 1000)
 
+    _init_weight_limit()
+    print(f"-> Endpoint aktif: {scr.BASE}  |  batas weight/menit: {_weight_limit_1m}", flush=True)
+
     if args.symbols:
         pairs = [s.strip().upper() for s in args.symbols.split(",")]
+    elif args.universe:
+        print(f"-> Membangun/memuat universe {args.universe.upper()} "
+              f"(vol24h >= ${UNIVERSE_MIN_USD[args.universe]:,.0f}) ...", flush=True)
+        pairs, meta = build_universe(args.universe)
+        print(f"   {meta['n_symbols']} pair (snapshot {meta['snapshot_utc']}) -> "
+              f".cache_orderflow/universe_{args.universe}.json", flush=True)
     else:
-        print("-> Mengambil daftar pair USDT (sama seperti fetch_history.py) ...", flush=True)
+        print("-> Mengambil daftar pair USDT (sama seperti fetch_history.py, TANPA filter volume) ...",
+              flush=True)
         pairs = fh.list_usdt_pairs(args.max_pairs or None)
     if "BTCUSDT" not in pairs:
         pairs = ["BTCUSDT"] + pairs

@@ -29,6 +29,7 @@ python verify.py                          # gerbang mutu setelah edit kode
 
 python fetch_history.py --start 2021-01-01   # isi .cache_history/ (sekali, untuk backtest)
 python backtest.py --history                 # backtest walk-forward di arsip panjang
+python fetch_orderflow.py --universe u2      # isi .cache_orderflow/ (kolom qav/trades/tbbav/tbqav)
 ```
 
 
@@ -49,6 +50,7 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `factor_test.py` | Uji 9 faktor mentah per kuintil (bukan komposit): demeaned per koin, ANOVA identitas koin, validasi holdout 30% simbol |
 | `mechanics_test.py` | Uji 6 varian mekanik trade dengan ENTRY ACAK (seleksi dinetralkan) |
 | `regime_test.py` | Tahap 1 uji regime: 5 detektor walk-forward, return 30-hari-ke-depan universe saat BULL vs BEAR |
+| `fetch_orderflow.py` | Unduh sejarah harian TERMASUK kolom aliran order (qav/trades/tbbav/tbqav) yang dibuang `fetch_klines()`/`fetch_history.py` → `.cache_orderflow/`. Universe U1/U2 dibekukan sekali (`universe_<u>.json`) |
 
 Alur: `fetch_universe` → `btc_regime` (gate) → per simbol: `fetch_for_mode` → `evaluate` → skoring 5 komponen → veto check → `build_trade_plan` → ranking.
 
@@ -154,6 +156,32 @@ ditangkap program lain** (termasuk Claude Code) Python jatuh ke cp1252 dan crash
 Karena itu tiap entry script memanggil `_force_utf8()` di awal. Jangan hapus fungsi ini,
 dan jangan "memperbaiki" gejalanya dengan `chcp 65001` atau `PYTHONIOENCODING` manual —
 perbaikannya sudah ada di dalam kode.
+
+## Endpoint Binance & pemblokiran ISP (per 2026-09-05)
+
+`api.binance.com` **diblokir DNS oleh ISP di Indonesia** — resolusinya diarahkan ke
+server pemblokir lokal (IP bukan Binance), yang menyajikan sertifikat TLS
+kedaluwarsa sehingga koneksi gagal dengan `SSLError`, bukan gagal bersih. Karena itu:
+
+- **`data-api.binance.vision` adalah endpoint DEFAULT** (urutan pertama di
+  `BASE_CANDIDATES`, `screener.py`), bukan `api.binance.com`. Endpoint ini adalah
+  host data publik resmi Binance, tidak diblokir, dan tidak butuh env var apa pun.
+  Override manual masih bisa lewat `export BINANCE_BASE=...` kalau suatu saat perlu.
+- **Fallback endpoint HARUS menangani exception koneksi (`SSLError`,
+  `ConnectionError`, `Timeout`), bukan cuma status HTTP 403/451.** Pemblokiran
+  DNS/TLS datang sebagai exception di level `requests`, bukan respons HTTP —
+  kalau `_get()` cuma memeriksa status code, ia akan retry 3x ke endpoint yang
+  SAMA lalu menyerah, padahal endpoint lain di `BASE_CANDIDATES` sehat. `_get()`
+  di `screener.py` sudah memperbaiki ini: exception koneksi memicu `_switch_base()`
+  duluan, baru dihitung sebagai retry kalau tidak ada endpoint lain tersisa.
+- **Setiap script baru yang memanggil Binance API wajib memakai `BASE_CANDIDATES` +
+  `_switch_base()` + `_force_utf8()` dari `screener.py` (lewat `import screener as scr`
+  — `_force_utf8()` otomatis berjalan sebagai efek samping import) — JANGAN menulis
+  ulang endpoint/fallback/encoding sendiri.** Pola ini sudah menimbulkan bug 3 kali
+  secara terpisah: encoding cp1252 (lihat di atas), endpoint fallback yang cuma
+  cek status HTTP, dan penanganan exception TLS. Kalau tiga hal dasar ini sudah
+  bermasalah tiga kali, jangan diulang keempat kalinya dengan menulis versi baru
+  di script lain.
 
 ## Status backtest (per 2026-09-03)
 
