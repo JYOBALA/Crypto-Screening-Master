@@ -46,6 +46,7 @@ scratch_*
 arsip/*
 !arsip/backtest_trades.csv
 !arsip/orderflow_ic_results.csv
+!arsip/defi_ic_results.csv
 !arsip/screening_daily_20260831_0619.csv
 !arsip/screening_daily_20260901_0119.csv
 !arsip/screening_gem_20260901_0120.csv

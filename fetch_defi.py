@@ -42,6 +42,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -98,8 +99,8 @@ def _llama_get(url: str, retries: int = 4, timeout: int = 60):
                 return json.loads(r.read())
         except urllib.error.HTTPError as e:
             last = e
-            if e.code == 404:
-                return None                     # protokol tak punya dimensi ini (mis. bukan DEX)
+            if e.code in (400, 404):
+                return None                     # protokol tak punya dimensi ini (mis. tak ada adapter fee/dex)
             time.sleep(2.0 * (i + 1))
         except Exception as e:                   # noqa: BLE001
             last = e
@@ -294,8 +295,9 @@ def fetch_chain(chain: str, refresh: bool) -> str:
     path = os.path.join(CHAIN_DIR, f"{safe}.json")
     if os.path.exists(path) and not refresh:
         return "cache"
-    ctvl = _llama_get(f"{LLAMA}/v2/historicalChainTvl/{chain}")
-    scharts = _llama_get(f"{STABLES_API}/stablecoincharts/{chain}")
+    q = urllib.parse.quote(chain, safe="")
+    ctvl = _llama_get(f"{LLAMA}/v2/historicalChainTvl/{q}")
+    scharts = _llama_get(f"{STABLES_API}/stablecoincharts/{q}")
     stbl = []
     for row in scharts or []:
         try:

@@ -5,9 +5,10 @@ Screener teknikal untuk swing trade crypto (Binance USDT spot, timeframe harian)
 (1) screener SOP berbasis skor 100 poin — Volume, Stoch RSI, Fibonacci,
 Support–Resistance, Chart Pattern — yang menghasilkan daftar ticker + rencana
 trade lengkap untuk eksekusi manual; dan (2) kerangka validasi kuantitatif yang
-dipakai untuk mengukur apakah skor itu punya nilai prediktif. Setelah lima
+dipakai untuk mengukur apakah skor itu punya nilai prediktif. Setelah enam
 rangkaian uji walk-forward (backtest komposit, faktor tunggal, mekanik
-entry-acak, detektor regime, aliran order — **semuanya null**), kesimpulannya:
+entry-acak, detektor regime, aliran order, data fundamental protokol —
+**semuanya null**), kesimpulannya:
 skor **tidak** memberi edge terukur di universe/periode ini. Alat tetap berguna
 sebagai **penyaring perhatian + pemaksa disiplin** (checklist konsisten, level
 entry/SL/TP eksplisit, jurnal append-only), **bukan penghasil sinyal.** Bagian
@@ -32,6 +33,7 @@ pengukuran.
 | **Mekanik entry-acak** (`mechanics_test.py`) | 8.000 entry acak · 6 varian | Seleksi dinetralkan total (entry acak); set entry identik untuk semua varian; uji A baseline / B tanpa BE / C SL 3×ATR / D trailing / E timeout 90 / F full-exit TP1 | **Keenam varian E[R] negatif** (−0,055 s/d −0,095 R). 95% CI **seluruhnya di bawah nol.** E[R] tanpa 5 trade terbaik ≈ E[R] penuh → negatif **struktural**, bukan efek ekor. |
 | **Detektor regime** (`regime_test.py`) | 5 detektor · ~130 minggu evaluasi | Walk-forward; 95% CI = bootstrap blok per minggu (2000 resample) menghormati korelasi antar-koin | **Tidak ada detektor yang lolos.** Selisih BULL−BEAR terbesar +2,8 pp (CI [−2,5, +8,1]). 3 dari 5 detektor **anti-prediktif.** Tahap 2 (long/short) tidak dijalankan — prasyarat gagal. |
 | **Aliran order** (`orderflow_test.py`) | 30 uji IC (5 fitur × 3 horizon × 2 universe) | Cross-sectional (IC Spearman harian vs return demeaned); ambang t-stat dinaikkan 3,0→3,5 untuk 30 uji; holdout seed baru | **0 dari 30 lulus semua kriteria.** 4 lolos discovery; kandidat terkuat (`taker_buy_ratio`, t hingga +6,21) **berbalik arah negatif** di 47 simbol holdout. |
+| **Data fundamental protokol** (`defi_test.py`) | 15 uji IC (5 fitur × 3 horizon) · 172 protokol DefiLlama↔Binance | Cross-sectional + versi within-symbol; fitur di-lag 2 hari (data DefiLlama direvisi surut); TVL dikoreksi harga (Laspeyres); holdout seed baru | **0 dari 15 lulus.** `tvl_share_of_chain` punya IC cross-sectional kuat (t +7,1) tapi **within-symbol ≈ 0** — murni seleksi protokol, nol timing. `mcap/fees` signifikan tapi tidak monoton (Q5−Q1 lawan arah). Detail: [`HASIL_DEFI.md`](HASIL_DEFI.md). |
 
 Kesimpulan lengkap + daftar "apa yang **tidak** boleh disimpulkan dari data ini":
 **[`RINGKASAN_AKHIR.md`](RINGKASAN_AKHIR.md)**.
@@ -47,20 +49,30 @@ diperoleh — dirancang untuk **menyulitkan diri sendiri menemukan sinyal palsu:
   dan **di-commit sebelum satu baris hasil pun dilihat**
   ([`HIPOTESIS_FAKTOR.md`](HIPOTESIS_FAKTOR.md),
   [`HIPOTESIS_REGIME.md`](HIPOTESIS_REGIME.md),
-  [`HIPOTESIS_ORDERFLOW.md`](HIPOTESIS_ORDERFLOW.md)). Tidak ada ambang yang
+  [`HIPOTESIS_ORDERFLOW.md`](HIPOTESIS_ORDERFLOW.md),
+  [`HIPOTESIS_DEFI.md`](HIPOTESIS_DEFI.md)). Tidak ada ambang yang
   digeser setelah melihat hasil.
 - **Holdout sekali pakai.** 30% simbol disisihkan dengan seed yang dicatat
-  (`20260904` untuk faktor, `20260905` untuk order flow — sengaja berbeda).
-  Begitu sebuah faktor diuji di holdout, ia **tidak pernah diuji ulang** di split
-  yang sama; menindaklanjuti butuh data baru.
+  (`20260904` faktor, `20260905` order flow, `20260906` fundamental — sengaja
+  berbeda). Begitu sebuah faktor diuji di holdout, ia **tidak pernah diuji
+  ulang** di split yang sama; menindaklanjuti butuh data baru. (Holdout
+  fundamental belum terpakai — tidak ada fitur yang lolos discovery.)
 - **Koreksi multiple testing.** Ambang t-stat dinaikkan seiring jumlah uji
-  (order flow: 3,0 → 3,5 karena 30 uji, bukan 15).
+  (order flow & fundamental: 3,0 → 3,5).
 - **Koreksi within-symbol.** Setiap faktor diukur setelah *demeaned per koin*,
   memisahkan "faktor ini menandai koin yang bagus" (seleksi) dari "faktor ini
   menandai momen yang bagus di dalam koin yang sama" (timing). Hanya yang kedua
   yang dihitung sebagai sinyal.
+  Uji fundamental menjadikan ini **gerbang lulus**: fitur yang IC
+  cross-sectionalnya kuat tapi within-symbolnya nol otomatis gagal.
 - **Netralisasi seleksi.** Uji mekanik memakai entry **acak** supaya kualitas
   manajemen posisi diukur terpisah dari kualitas pemilihan setup.
+- **Koreksi lookahead untuk data yang direvisi surut.** DefiLlama menghitung
+  ulang sejarah TVL/fee saat adapter-nya diperbaiki; fitur fundamental di-lag
+  2 hari dan keterbatasan ini ditulis menonjol (bukan disembunyikan).
+- **Koreksi sirkularitas.** Pertumbuhan TVL dihitung dari kuantitas token
+  native pada harga tetap (Laspeyres), bukan nilai USD — supaya "TVL naik"
+  tidak sekadar berarti "harga token naik".
 - **Bootstrap sadar-korelasi.** CI regime dihitung dengan bootstrap blok
   mingguan — mengakui bahwa 30.000 observasi koin yang bergerak bersama hanya
   bernilai ~130 minggu sampel efektif.
@@ -79,6 +91,12 @@ Nilai kerangka ini paling terlihat saat ia membunuh temuannya sendiri:
   dilihat, **arah IC berbalik total menjadi negatif.** Sinyal palsu klasik dari
   overfitting universe kecil — hanya ketahuan karena protokol mewajibkan holdout
   dengan seed baru.
+- **`tvl_share_of_chain` (fundamental).** IC cross-sectional naik mulus antar
+  horizon sampai **t-stat +7,1** — protokol yang merebut pangsa TVL chain-nya
+  memang cenderung protokol yang lebih baik. Tapi **IC within-symbol = −0,003**
+  (nol): "protokol X sedang merebut pangsa" tidak mengatakan apa pun tentang
+  apakah **sekarang** momen bagus untuk masuk X. Sinyal seleksi murni, nol
+  timing — gagal gerbang within-symbol sebelum sampai holdout.
 - **`fib_retr` & `atr_pct` (faktor tunggal).** Spearman mentah kuat (**±0,16**),
   terlihat seperti sinyal timing yang jelas. Setelah demeaned per koin, keduanya
   runtuh ke **~0** (−0,022 dan +0,019). Keduanya cuma **proksi kualitas koin** —
@@ -186,13 +204,15 @@ Kerangka validasi (read-only, tidak mengubah scoring)
   mechanics_test.py  # 6 varian mekanik trade dengan entry acak
   regime_test.py     # 5 detektor regime long/short — Tahap 1 + bootstrap
   orderflow_test.py  # 30 uji IC cross-sectional fitur aliran order
+  defi_test.py       # 15 uji IC data fundamental protokol (DefiLlama) — kategori data ke-6
   fetch_history.py   # Isi .cache_history/ (422 pair, 2021–2026)
   fetch_orderflow.py # Isi .cache_orderflow/ (kolom qav/trades/tbbav/tbqav)
+  fetch_defi.py      # Isi .cache_defi/ (TVL/fee/revenue/stablecoin dari api.llama.fi)
 
 Dokumentasi
-  RINGKASAN_AKHIR.md     # Kesimpulan lengkap 5 rangkaian uji + batasan eksplisit
+  RINGKASAN_AKHIR.md     # Kesimpulan lengkap uji sistem skor (komposit/faktor/mekanik/regime) + batasan
   HIPOTESIS_*.md         # Protokol pra-registrasi (di-commit sebelum hasil)
-  FACTOR_TEST_HASIL.md / HASIL_REGIME.md / HASIL_ORDERFLOW.md   # Hasil lengkap per uji
+  FACTOR_TEST_HASIL.md / HASIL_REGIME.md / HASIL_ORDERFLOW.md / HASIL_DEFI.md   # Hasil lengkap per uji
   KRITERIA_EVALUASI.md   # Pra-registrasi eksperimen trading manual (universe beku)
   GEM_MODE.md            # Dokumentasi lengkap mode gem
   DEPLOY.md              # Setup cron daily_run.py + bot Telegram di VPS
@@ -208,12 +228,17 @@ Dokumentasi
   bukan "80% peluang menang".
 - **Long-only.** SOP dirancang untuk swing beli di pullback. `short_scan.py`
   menghasilkan kandidat SHORT (cermin bobot 25/20/20/20/15), **tetapi sisi short
-  BELUM PERNAH DIUJI** — sisi long sudah 5× dinyatakan null, short nol kali.
+  BELUM PERNAH DIUJI** — sisi long sudah 6× dinyatakan null, short nol kali.
   Perlakukan output short sebagai eksperimen, bukan sinyal.
 - **Survivorship tidak bisa dikoreksi penuh.** `.cache_history/` hanya berisi
-  pair yang **masih listing** di Binance hari ini. Koin yang sudah delisting
-  (kemungkinan besar yang terburuk) tidak bisa ditarik dari API — semua hasil
-  backtest di sini kemungkinan **lebih optimis** dari kenyataan penuh.
+  pair yang **masih listing** di Binance hari ini; universe DefiLlama hanya
+  protokol yang **masih hidup**. Yang delisting / mati / di-rug (kemungkinan
+  besar yang terburuk) tidak bisa ditarik dari API — semua hasil backtest di
+  sini kemungkinan **lebih optimis** dari kenyataan penuh.
+- **Data fundamental DefiLlama direvisi surut.** Endpoint historisnya menyajikan
+  TVL/fee sebagaimana-direvisi, bukan sebagaimana-dilaporkan-saat-itu. Fitur
+  di-lag 2 hari sebagai mitigasi parsial; hasil uji fundamental harus dibaca
+  sebagai batas atas optimistik (akademis di sini — tidak ada yang lolos).
 - **Lahan sangat buruk.** Median koin di universe ini −83% sejak 2021, hanya 9%
   yang naik. Uji apa pun di sini menghadapi tekanan luar biasa dan hasilnya
   belum tentu berlaku di periode/timeframe/exchange lain.

@@ -30,6 +30,9 @@ python verify.py                          # gerbang mutu setelah edit kode
 python fetch_history.py --start 2021-01-01   # isi .cache_history/ (sekali, untuk backtest)
 python backtest.py --history                 # backtest walk-forward di arsip panjang
 python fetch_orderflow.py --universe u2      # isi .cache_orderflow/ (kolom qav/trades/tbbav/tbqav)
+python orderflow_test.py                     # uji 30 fitur aliran order (0/30 lulus)
+python fetch_defi.py                         # isi .cache_defi/ (data fundamental DefiLlama)
+python defi_test.py                          # uji 15 fitur fundamental (0/15 lulus)
 python journal.py new SYMBOL                 # catat kondisi objektif + tesis sebelum entry
 python journal.py close ID --exit-price X --exit-reason SL   # catat exit aktual
 python journal.py review                     # kalibrasi keyakinan vs hasil (butuh >=50 trade utk kesimpulan)
@@ -56,9 +59,11 @@ Screener swing trade crypto berbasis SOP manual. Output berupa daftar ticker unt
 | `regime_test.py` | Tahap 1 uji regime: 5 detektor walk-forward, return 30-hari-ke-depan universe saat BULL vs BEAR |
 | `fetch_orderflow.py` | Unduh sejarah harian TERMASUK kolom aliran order (qav/trades/tbbav/tbqav) yang dibuang `fetch_klines()`/`fetch_history.py` → `.cache_orderflow/`. Universe U1/U2 dibekukan sekali (`universe_<u>.json`) |
 | `orderflow_test.py` | Uji cross-sectional (BUKAN simulasi trade): IC Spearman harian, 5 fitur order-flow × 3 horizon × 2 universe, holdout 30% simbol |
+| `fetch_defi.py` | Unduh data fundamental protokol dari `api.llama.fi` (TVL, tokens native, fee/revenue, volume DEX) + TVL chain + pasokan stablecoin per chain → `.cache_defi/` (gitignored). Petakan protokol DefiLlama → simbol Binance USDT spot (kanonik = TVL sekarang terbesar utk tabrakan ticker). Tanpa API key. Hanya panggilan `/api/v3/exchangeInfo` yang lewat `screener._get` |
+| `defi_test.py` | Uji cross-sectional data fundamental (kategori data ke-6): IC Spearman harian + within-symbol, 5 fitur (D1–D5) × 3 horizon = 15 uji, holdout 30% seed `20260906`. Fitur di-lag 2 hari (jebakan lookahead as-revised). D1 pakai pertumbuhan TVL harga-netral Laspeyres. **0 dari 15 lulus** — lihat `HASIL_DEFI.md` |
 | `journal.py` | Jurnal trade sebagai instrumen riset: tangkap kondisi objektif `evaluate()` + tesis/keyakinan/keputusan user, append-only + hash SHA256 per record → `journal.jsonl` (gitignored). `compute_review()` = satu sumber kebenaran statistik, dipakai `journal.py review`. TIDAK pernah menyarankan ambil/lewati |
 | `daily_run.py` | Cron harian (bukan proses menetap): screener LONG+SHORT utk 15 simbol `universe_frozen.json`, sisipkan baris hari ini di paling ATAS `ide_trade.xlsx` (gitignored). Guard idempoten (cek baris tanggal hari ini, skip kecuali `--force`), validasi bahasa (`_check_forbidden`) sebelum kirim Telegram, notifikasi ERROR kalau jaringan gagal (tidak diam). Kalau `ide_trade.xlsx` terkunci (mis. sedang dibuka di Excel): fallback ke `data/ide_trade_YYYY-MM-DD.csv`, tidak pernah kehilangan data hari itu |
-| `short_scan.py` | Kandidat SHORT — cermin bobot 25/20/20/20/15 punya long, **BELUM PERNAH DIUJI** (beda dari long yang 5x null). Cek ketersediaan perp (`/fapi/v1/exchangeInfo`, host beda dari spot — sering ikut diblokir ISP, gagal aman ke "tidak ada perp"), funding rate INFORMASI saja (bukan skor) |
+| `short_scan.py` | Kandidat SHORT — cermin bobot 25/20/20/20/15 punya long, **BELUM PERNAH DIUJI** (beda dari long yang 6x null). Cek ketersediaan perp (`/fapi/v1/exchangeInfo`, host beda dari spot — sering ikut diblokir ISP, gagal aman ke "tidak ada perp"), funding rate INFORMASI saja (bukan skor) |
 | `universe_frozen.json` | 15 simbol dibekukan 2026-09-05 (`KRITERIA_EVALUASI.md`) — **jangan diedit** sampai trade ke-50. `daily_run.py` baca file ini, TIDAK fetch universe dari volume hari ini |
 
 **Tidak ada dashboard/web UI** — `dashboard.html` dicabut (2026-09-05).
@@ -306,6 +311,43 @@ validasi skor (`RINGKASAN_AKHIR.md` tetap khusus skor komposit, tidak diedit
 untuk ini), tapi kesimpulannya senada: skor komposit, faktor tunggal, mekanik
 entry-acak, detektor regime, DAN sekarang aliran order — lima kategori data
 berbeda, semua null di universe/periode ini.
+
+## Uji nilai prediktif data fundamental protokol (DefiLlama) — TIDAK ADA sinyal (per 2026-09-06)
+
+**Kategori data KEENAM.** Lima sebelumnya semua turunan harga/volume; ini data
+fundamental (TVL, fee/revenue, volume DEX, pasokan stablecoin per chain).
+`fetch_defi.py` (unduh `api.llama.fi` → `.cache_defi/`, gitignored) +
+`defi_test.py`. Pra-registrasi: `HIPOTESIS_DEFI.md` (commit `510e115`, SEBELUM
+ambil data). Hasil lengkap: `HASIL_DEFI.md`.
+
+Metodologi = `orderflow_test.py` (IC Spearman harian cross-sectional + versi
+within-symbol, holdout 30% seed `20260906` — BELUM terpakai). 5 fitur (D1
+tvl_growth harga-netral Laspeyres + kondisi harga datar, D2 mcap/fees persentil,
+D3 fees_growth_30d, D4 tvl_share_of_chain slope, D5 stablecoin_inflow chain 14d)
+× 3 horizon = **15 uji, 0 lulus.** Pemetaan: 8.190 protokol DefiLlama → 194
+simbol Binance (107 via tabrakan ticker, dipilih TVL terbesar) → 172 universe
+efektif (≥180 hari data).
+
+Tiga near-miss yang instruktif:
+- **D4** (tvl_share_of_chain slope): IC cross-sectional kuat (t sampai **+7,1**)
+  tapi **within-symbol ≈ 0** — sinyalnya 100% seleksi protokol, nol timing.
+  Gagal gate within-symbol sebelum sampai holdout.
+- **D2** (mcap/fees): IC −0,024..−0,026, t −4,1..−4,7, arah sesuai dugaan, tapi
+  **spread kuintil Q5−Q1 berlawanan tanda IC** → tidak monoton, gagal kriteria 4.
+- **D1** (tvl_growth harga-netral): within-symbol lawan arah + efek
+  terkonsentrasi 2021–2023 (IC 21–23 = +0,13, 24–26 = +0,002).
+
+Jebakan yang ditangani (pra-registrasi): (1) **lookahead as-revised** — endpoint
+historis DefiLlama menyajikan data yang direvisi surut; mitigasi lag 2 hari
+TIDAK menghilangkannya → dicatat sebagai batasan besar. (2) survivorship
+protokol mati. (3) **TVL sirkular** — D1 pakai kuantitas token native dinilai
+harga t−30 (Laspeyres), bukan `totalLiquidityUSD` mentah. (4) memecoin
+di-exclude.
+
+**JANGAN bangun fitur DefiLlama ke dalam `scoring.py`.** Enam kategori data,
+metodologi pra-registrasi sama, semua null di universe/periode ini. Holdout seed
+`20260906` masih perawan — pakai untuk uji lanjutan kalau ada data/fitur baru,
+jangan uji ulang fitur D1–D5 di seed itu.
 
 ## Rencana berikutnya (kalau user meminta)
 

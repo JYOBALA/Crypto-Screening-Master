@@ -422,7 +422,8 @@ def main():
                   f"within={w_disc:+.3f}  -> {verdict}", flush=True)
 
     res = pd.DataFrame(results)
-    out_csv = os.path.join(HERE, "defi_ic_results.csv")
+    os.makedirs(os.path.join(HERE, "arsip"), exist_ok=True)
+    out_csv = os.path.join(HERE, "arsip", "defi_ic_results.csv")
     res.to_csv(out_csv, index=False)
     n_pass = (res["verdict"] == "LULUS").sum()
     print("\n" + "=" * 80)
