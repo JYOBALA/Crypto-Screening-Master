@@ -49,7 +49,17 @@ kandidat sampai konektivitas ini diperbaiki (VPN, host alternatif, dll).
 
 ---
 
-## 2. Buat bot Telegram
+## 2. Siapkan kanal notifikasi
+
+Notifikasi bersifat pluggable — pilih SATU kanal lewat `NOTIFY_CHANNEL` di
+`.env`: `telegram`, `ntfy`, `discord`, `email`, atau `none` (lewati kirim
+sama sekali, tanpa dianggap gagal — `ide_trade.xlsx` tetap ditulis seperti
+biasa). Default kalau `NOTIFY_CHANNEL` tidak diset: `telegram`. Semua kanal
+tunduk pada aturan bahasa yang sama (`_check_forbidden()` di
+`daily_run.py`) — dicek satu kali di `send_notification()` sebelum dispatch
+ke kanal manapun, bukan per-kanal.
+
+### Opsi A — Telegram
 
 1. Buka Telegram, cari **@BotFather**, kirim `/newbot`.
 2. Ikuti instruksinya (nama bot, username harus berakhiran `bot`).
@@ -61,6 +71,37 @@ kandidat sampai konektivitas ini diperbaiki (VPN, host alternatif, dll).
    curl "https://api.telegram.org/bot<TOKEN>/getUpdates"
    ```
    Cari field `"chat":{"id": ...}` di respons JSON-nya — itu chat ID Anda.
+6. Isi `NOTIFY_CHANNEL=telegram`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+
+### Opsi B — ntfy
+
+1. Pilih nama topic acak yang sulit ditebak orang lain (siapa pun yang tahu
+   nama topic di server publik `ntfy.sh` bisa membaca notifikasi Anda) —
+   mis. `screener-abc123xyz`.
+2. Install app ntfy (Android/iOS) atau buka `https://ntfy.sh/<topic-anda>`
+   di browser, lalu subscribe ke topic itu.
+3. Isi `NOTIFY_CHANNEL=ntfy`, `NTFY_TOPIC=<topic-anda>`. Opsional:
+   `NTFY_SERVER` kalau pakai server ntfy sendiri (bukan `ntfy.sh`), atau
+   `NTFY_TOKEN` kalau topic diproteksi auth.
+
+### Opsi C — Discord
+
+1. Di server Discord Anda: Server Settings → Integrations → Webhooks →
+   New Webhook. Pilih channel tujuan, salin **Webhook URL**.
+2. Isi `NOTIFY_CHANNEL=discord`, `DISCORD_WEBHOOK_URL=<url-webhook>`.
+
+### Opsi D — Email (SMTP)
+
+1. Siapkan akun pengirim + kredensial SMTP. Untuk Gmail, pakai **App
+   Password** (bukan password akun biasa — butuh 2FA aktif dulu):
+   `https://myaccount.google.com/apppasswords`.
+2. Isi `NOTIFY_CHANNEL=email`, `SMTP_HOST`, `SMTP_PORT` (biasanya 587),
+   `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`, `EMAIL_TO`.
+
+### Opsi E — Tanpa notifikasi
+
+Isi `NOTIFY_CHANNEL=none`. `ide_trade.xlsx` tetap tertulis tiap hari seperti
+biasa; cukup buka file itu (lihat bagian 4) untuk melihat hasilnya.
 
 ---
 
@@ -71,11 +112,8 @@ cp .env.example .env
 nano .env
 ```
 
-Isi:
-```
-TELEGRAM_BOT_TOKEN=123456789:AAExampleTokenHere
-TELEGRAM_CHAT_ID=123456789
-```
+Isi sesuai kanal yang dipilih di bagian 2 — lihat `.env.example` untuk daftar
+lengkap variabel per kanal (hanya variabel kanal yang aktif yang perlu diisi).
 
 `.env` **tidak boleh** ter-commit (sudah di `.gitignore`). Cek:
 ```bash
@@ -89,8 +127,9 @@ hari yang sama di produksi — itu untuk testing saja):
 python3 daily_run.py --force
 ```
 
-Kalau berhasil, pesan masuk ke Telegram Anda dan `ide_trade.xlsx` (baris hari
-ini disisipkan di paling atas, di bawah baris catatan+header) terisi.
+Kalau berhasil, pesan masuk lewat kanal yang Anda pilih (kecuali
+`NOTIFY_CHANNEL=none`) dan `ide_trade.xlsx` (baris hari ini disisipkan di
+paling atas, di bawah baris catatan+header) terisi.
 
 ---
 
@@ -146,9 +185,10 @@ Tanda-tanda gagal:
   cron jalan (lihat pesan `PermissionError` di `daily_run.log`); data hari
   itu AMAN di CSV fallback tapi belum tergabung. Tutup apa pun yang mengunci
   `ide_trade.xlsx`, lalu `python3 daily_run.py --force` utk menggabungkannya.
-- Tidak ada notifikasi Telegram TAPI baris hari ini ADA di `ide_trade.xlsx`
-  -> masalah di `send_telegram()` (cek `.env`, cek `daily_run.log` utk baris
-  `ERROR` atau `CRITICAL`).
+- Tidak ada notifikasi TAPI baris hari ini ADA di `ide_trade.xlsx` -> normal
+  kalau `NOTIFY_CHANNEL=none` (memang sengaja dilewati). Kalau kanal lain
+  yang dipilih, masalah ada di `send_notification()`/pengirim kanal itu
+  (cek `.env`, cek `daily_run.log` utk baris `ERROR` atau `CRITICAL`).
 - `daily_run.log` berisi `[ERROR] daily_run.py gagal` -> masalah jaringan/data,
   cek traceback lengkap di atas baris itu (`logging.exception` menulis
   traceback penuh).
@@ -173,7 +213,7 @@ env -i /bin/sh -c 'cd /path/ke/screening-crypto && .venv/bin/python3 daily_run.p
 |---|---|
 | `daily_run.py` | Orkestrasi harian (cron) — TIDAK menetap sbg proses |
 | `universe_frozen.json` | 15 simbol dibekukan (`KRITERIA_EVALUASI.md`) — daily_run.py TIDAK fetch universe dari volume hari ini |
-| `.env` | Secret Telegram, TIDAK di-commit |
+| `.env` | Secret notifikasi (kanal aktif dipilih via `NOTIFY_CHANNEL`), TIDAK di-commit |
 | `ide_trade.xlsx` | SATU spreadsheet yang bertambah tiap hari (LONG+SHORT, baris terbaru di atas), TIDAK di-commit. Baris tanggal hari ini jg jadi guard idempotensi |
 | `data/ide_trade_YYYY-MM-DD.csv` | Fallback DARURAT — hanya muncul kalau `ide_trade.xlsx` terkunci saat cron jalan. Kalau ada, gabungkan manual dgn `--force` setelah file dibuka |
 | `short_scan.py` | Kandidat SHORT (belum pernah diuji), cek perp `/fapi/*` (host beda dari spot, lihat bagian 1) |

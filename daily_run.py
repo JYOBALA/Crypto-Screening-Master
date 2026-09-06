@@ -4,7 +4,9 @@ daily_run.py — Jalankan sekali sehari (cron), HANYA untuk 15 koin di
 `universe_frozen.json` (TIDAK fetch universe dari volume hari ini — lihat
 CLAUDE.md soal bahaya itu). Tulis SATU spreadsheet yang bertambah tiap hari,
 ide_trade.xlsx (LONG + SHORT digabung, baris terbaru di atas), lalu kirim
-ringkasan ke Telegram. Exit setelah selesai — tidak ada proses yang menetap
+ringkasan lewat kanal notifikasi pluggable (NOTIFY_CHANNEL di .env: telegram/
+ntfy/discord/email/none — lihat send_notification()). Exit setelah selesai —
+tidak ada proses yang menetap
 (dijadwalkan lewat cron, lihat DEPLOY.md). Tidak ada dashboard lagi — dicabut,
 lihat CLAUDE.md.
 
@@ -31,8 +33,10 @@ import argparse
 import json
 import logging
 import os
+import smtplib
 import sys
 from datetime import datetime, timezone
+from email.message import EmailMessage
 
 import pandas as pd
 import requests
@@ -101,7 +105,10 @@ def _check_forbidden(text: str) -> None:
 
 
 # ─────────────────────────────────────────────────────────────
-# Telegram
+# Notifikasi -- pluggable per kanal, dipilih lewat NOTIFY_CHANNEL (.env).
+# Titik masuk TUNGGAL adalah send_notification() di bawah -- _check_forbidden()
+# dijalankan DI SITU, sebelum dispatch ke kanal manapun, supaya aturan bahasa
+# tidak bisa lolos hanya krn menambah kanal baru dan lupa memanggilnya.
 # ─────────────────────────────────────────────────────────────
 
 def send_telegram(text: str) -> bool:
@@ -109,11 +116,6 @@ def send_telegram(text: str) -> bool:
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     if not token or not chat_id:
         logging.error("TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID tidak diset (.env) -- notifikasi dilewati.")
-        return False
-    try:
-        _check_forbidden(text)
-    except AssertionError as e:
-        logging.critical(f"Pesan diblokir sebelum kirim -- melanggar aturan bahasa: {e}")
         return False
     try:
         r = requests.post(
@@ -125,6 +127,103 @@ def send_telegram(text: str) -> bool:
         return True
     except Exception as e:      # noqa: BLE001
         logging.error(f"Gagal kirim Telegram: {e}")
+        return False
+
+
+def send_ntfy(text: str) -> bool:
+    server = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
+    topic = os.environ.get("NTFY_TOPIC")
+    if not topic:
+        logging.error("NTFY_TOPIC tidak diset (.env) -- notifikasi ntfy dilewati.")
+        return False
+    headers = {"Title": "Screener harian"}
+    token = os.environ.get("NTFY_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        r = requests.post(f"{server}/{topic}", data=text.encode("utf-8"),
+                           headers=headers, timeout=20)
+        r.raise_for_status()
+        return True
+    except Exception as e:      # noqa: BLE001
+        logging.error(f"Gagal kirim ntfy: {e}")
+        return False
+
+
+def send_discord(text: str) -> bool:
+    webhook = os.environ.get("DISCORD_WEBHOOK_URL")
+    if not webhook:
+        logging.error("DISCORD_WEBHOOK_URL tidak diset (.env) -- notifikasi discord dilewati.")
+        return False
+    content = text if len(text) <= 1900 else text[:1900] + "\n... (dipotong)"
+    try:
+        r = requests.post(webhook, json={"content": content}, timeout=20)
+        r.raise_for_status()
+        return True
+    except Exception as e:      # noqa: BLE001
+        logging.error(f"Gagal kirim Discord: {e}")
+        return False
+
+
+def send_email(text: str) -> bool:
+    host = os.environ.get("SMTP_HOST")
+    port = os.environ.get("SMTP_PORT", "587")
+    user = os.environ.get("SMTP_USER")
+    password = os.environ.get("SMTP_PASSWORD")
+    to_addr = os.environ.get("EMAIL_TO")
+    from_addr = os.environ.get("EMAIL_FROM", user)
+    if not host or not to_addr or not from_addr:
+        logging.error("SMTP_HOST/EMAIL_TO/EMAIL_FROM tidak lengkap (.env) -- notifikasi email dilewati.")
+        return False
+    msg = EmailMessage()
+    msg["Subject"] = "Screener harian"
+    msg["From"] = from_addr
+    msg["To"] = to_addr
+    msg.set_content(text)
+    try:
+        with smtplib.SMTP(host, int(port), timeout=20) as smtp:
+            smtp.starttls()
+            if user and password:
+                smtp.login(user, password)
+            smtp.send_message(msg)
+        return True
+    except Exception as e:      # noqa: BLE001
+        logging.error(f"Gagal kirim email: {e}")
+        return False
+
+
+NOTIFY_SENDERS = {
+    "telegram": send_telegram,
+    "ntfy": send_ntfy,
+    "discord": send_discord,
+    "email": send_email,
+}
+
+
+def send_notification(text: str) -> bool:
+    """Titik masuk tunggal notifikasi. NOTIFY_CHANNEL (.env) memilih kanal:
+    telegram, ntfy, discord, email, none. 'none' dilewati TANPA dianggap
+    gagal (return True). Kanal tidak dikenal/hilang dianggap gagal (return
+    False) tapi tidak pernah melempar exception -- pemanggil (main()) tidak
+    boleh crash gara-gara notifikasi, ide_trade.xlsx sudah tertulis duluan."""
+    channel = os.environ.get("NOTIFY_CHANNEL", "telegram").strip().lower()
+    if channel == "none":
+        logging.info("NOTIFY_CHANNEL=none -- notifikasi dilewati (bukan kegagalan).")
+        return True
+    try:
+        _check_forbidden(text)
+    except AssertionError as e:
+        logging.critical(f"Pesan diblokir sebelum kirim -- melanggar aturan bahasa: {e}")
+        return False
+    sender = NOTIFY_SENDERS.get(channel)
+    if sender is None:
+        logging.error(f"NOTIFY_CHANNEL={channel!r} tidak dikenal -- notifikasi dilewati. "
+                       f"Pilihan valid: {', '.join(NOTIFY_SENDERS)}, none.")
+        return False
+    try:
+        return sender(text)
+    except Exception as e:      # noqa: BLE001
+        logging.error(f"Gagal kirim notifikasi via {channel}: {e}")
         return False
 
 
@@ -368,8 +467,8 @@ def main():
         short_results.sort(key=lambda r: -r["total"])
     except Exception as e:      # noqa: BLE001
         logging.exception("daily_run gagal saat mengambil/menilai data")
-        send_telegram(f"[ERROR] daily_run.py gagal pada {today_str}: {e}\n"
-                       f"Cek daily_run.log di VPS. Tidak ada data baru hari ini.")
+        send_notification(f"[ERROR] daily_run.py gagal pada {today_str}: {e}\n"
+                           f"Cek daily_run.log di VPS. Tidak ada data baru hari ini.")
         sys.exit(1)
 
     long_cands = [r for r in long_results if not r["vetoed"] and r["total"] >= cfg["min_score"]]
@@ -393,11 +492,16 @@ def main():
     open_pos = jr.open_positions(records)
 
     msg = compose_message(today_str, regime, len(open_pos), long_cands, short_cands, failed, no_perp)
-    ok = send_telegram(msg)
+    channel = os.environ.get("NOTIFY_CHANNEL", "telegram").strip().lower()
+    ok = send_notification(msg)
     logging.info(f"selesai: {len(long_cands)} long, {len(short_cands)} short, {len(failed)} gagal, "
-                 f"{len(open_pos)} posisi terbuka, xlsx={status}, telegram_ok={ok}")
+                 f"{len(open_pos)} posisi terbuka, xlsx={status}, notify_channel={channel}, notify_ok={ok}")
+    if channel == "none":
+        notify_status = "dilewati (NOTIFY_CHANNEL=none)"
+    else:
+        notify_status = "terkirim" if ok else "GAGAL -- cek daily_run.log"
     print(f"Selesai. {len(long_cands)} kandidat LONG, {len(short_cands)} kandidat SHORT, "
-          f"{len(open_pos)} posisi terbuka, telegram {'terkirim' if ok else 'GAGAL -- cek daily_run.log'}.")
+          f"{len(open_pos)} posisi terbuka, notifikasi ({channel}): {notify_status}.")
     if status == "written":
         print(f"ide_trade.xlsx: {XLSX_PATH}")
 
