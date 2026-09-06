@@ -1,5 +1,23 @@
 # Crypto Swing Screener
 
+> ## ⚠ Baca dulu: skornya TIDAK prediktif
+>
+> Lima rangkaian uji walk-forward (skor komposit, faktor tunggal, mekanik
+> entry-acak, detektor regime, aliran order) **semuanya null** di universe
+> Binance USDT spot harian long-only 2021–2026. Skor total berkorelasi
+> **nol** dengan hasil trade (Pearson −0,01, Spearman −0,13); pita skor
+> tidak monoton; skor ≥70 kehilangan seluruh "edge"-nya begitu 3 winner
+> teratas dibuang. Detail: **`RINGKASAN_AKHIR.md`**.
+>
+> Perlakukan alat ini sebagai **penyaring perhatian + pemaksa disiplin**
+> (checklist SOP yang konsisten, rencana trade dengan level yang eksplisit,
+> jurnal yang jujur), **bukan penghasil sinyal**. Skor 80 berarti "banyak
+> kriteria checklist terpenuhi", bukan "80% peluang menang". Setiap kandidat
+> tetap wajib diverifikasi di chart dengan penilaian sendiri.
+>
+> **Jangan menyetel bobot/ambang berdasarkan hasil trade** — datanya sudah
+> cukup dan korelasinya nol; menyetel di atas itu = overfitting (lihat CLAUDE.md).
+
 Screener otomatis yang menerapkan SOP screening swing trade: **Volume (25) · Stoch RSI (20) · Fibonacci (20) · Support–Resistance (20) · Chart Pattern (15) = 100 poin**, lengkap dengan filter regime BTC, veto rules, dan perhitungan entry/SL/TP/position size.
 
 Output akhir: **daftar ticker siap eksekusi manual.**
@@ -15,7 +33,7 @@ Data diambil dari Binance public API — **tanpa API key, tanpa login, tanpa dep
 python3 --version
 
 # 2. Install dependency
-pip install pandas numpy requests pyarrow
+pip install pandas numpy requests pyarrow openpyxl
 
 # 3. Uji tanpa internet — memastikan semua logika jalan
 python3 screener.py --selftest
@@ -125,29 +143,36 @@ Itu normal dan justru sering benar. Urutan pengecekan:
 
 ## Otomatisasi
 
-**macOS / Linux** — jalan otomatis tiap hari jam 07:15 WIB:
+Pemakaian harian otomatis lewat **`daily_run.py`** (bukan proses menetap):
+screening LONG + SHORT untuk 15 simbol beku di `universe_frozen.json`,
+sisipkan baris hari ini di paling atas `ide_trade.xlsx`, kirim notifikasi
+(Telegram/ntfy/Discord/email, bisa dimatikan). Guard idempoten — aman
+dijalankan dua kali sehari.
 
 ```bash
-crontab -e
-# tambahkan (server pakai WIB):
-15 7 * * * cd /path/ke/screener && /usr/bin/python3 screener.py --mode daily --csv >> log_harian.txt 2>&1
-0 8 * * 1 cd /path/ke/screener && /usr/bin/python3 screener.py --mode weekly --csv >> log_mingguan.txt 2>&1
+python daily_run.py            # sekali tiap pagi
+python daily_run.py --force    # paksa tulis ulang baris hari ini
 ```
 
-**Windows** — Task Scheduler → Create Basic Task → Daily 07:15 → Start a program:
-`python.exe` dengan argumen `C:\path\screener.py --mode daily --csv`
+**Setup cron di VPS + bot Telegram: lihat `DEPLOY.md`.** `.env` (token bot),
+`journal.jsonl`, dan `ide_trade.xlsx` tidak pernah di-commit.
+
+`screener.py --mode daily/weekly --csv` masih bisa dipakai manual kalau ingin
+menjaring seluruh universe (bukan cuma 15 simbol beku).
 
 ---
 
 ## Menyesuaikan sistem dengan gaya kamu
 
-Semua bobot dan ambang batas ada di dua tempat, sengaja dibuat mudah diubah:
+**Bobot skor 25/20/20/20/15 dan ambangnya JANGAN diubah berdasarkan hasil
+trade.** Backtest 422 pair menunjukkan skor berkorelasi nol dengan hasil —
+menyetel bobot di atas data seperti itu adalah overfitting, bukan
+pengembangan. Aturan ini dikunci di CLAUDE.md. Yang berkembang seharusnya
+adalah **disiplin eksekusi kamu**, bukan angka bobot.
 
-**`scoring.py`** — logika skor tiap komponen. Contoh: kalau menurutmu volume kurang penting dibanding struktur, ubah nilai poin di `score_volume()` dan `score_sr()`.
-
-**`screener.py` → `DEFAULT_CFG`** — filter universe, pivot order, toleransi zona S/R, manajemen risiko.
-
-Parameter yang paling sering perlu disetel:
+Yang masih wajar disetel adalah parameter geometri/universe di
+**`screener.py` → `DEFAULT_CFG`**, karena mengubah *apa* yang dilihat, bukan
+mengklaim bobot yang lebih prediktif:
 
 | Parameter | Lokasi | Efek kalau dinaikkan |
 |---|---|---|
@@ -155,7 +180,8 @@ Parameter yang paling sering perlu disetel:
 | `sr_tolerance_pct` | `DEFAULT_CFG` | Zona S/R lebih lebar, sentuhan lebih mudah terkumpul |
 | `min_move_pct` | `indicators.last_impulse_swing()` | Hanya impuls besar yang dianggap valid untuk Fibonacci |
 
-Setelah 30 trade tercatat di jurnal, cek dari file CSV: komponen mana yang skornya tinggi pada trade yang menang? Naikkan bobotnya. Itu cara sistem ini seharusnya berkembang.
+Kalibrasi keyakinan-vs-hasil dilakukan lewat `python journal.py review`
+(butuh ≥50 trade sebelum ada kesimpulan), bukan dengan mengutak-atik bobot.
 
 ---
 
@@ -164,8 +190,8 @@ Setelah 30 trade tercatat di jurnal, cek dari file CSV: komponen mana yang skorn
 - **Deteksi pattern itu aproksimasi.** Bull flag dan triangle dideteksi lewat aturan geometris sederhana. Mata manusia masih lebih baik. Perlakukan skor pattern sebagai petunjuk, dan **selalu buka chartnya sebelum entry.**
 - **Tidak ada data market cap**, jadi filter rasio Volume/MCap dari SOP belum aktif. Cek manual di CoinGecko untuk kandidat final.
 - **Tidak ada data unlock token.** Cek manual di CryptoRank/TokenUnlocks untuk kandidat yang akan dieksekusi.
-- **Hanya sinyal long.** Sistem SOP ini memang dirancang untuk swing beli di pullback.
-- **Belum ada backtest.** Skor 80 bukan berarti probabilitas 80% menang — itu ukuran seberapa banyak kriteria yang terpenuhi, bukan prediksi. Uji di paper trading dulu.
+- **Inti sistem hanya sinyal long.** SOP-nya dirancang untuk swing beli di pullback. `short_scan.py` menghasilkan kandidat SHORT (cermin bobot 25/20/20/20/15), **tetapi sisi short BELUM PERNAH DIUJI** — long sudah 5× dinyatakan null, short nol kali. Perlakukan output short sebagai eksperimen, bukan sinyal.
+- **5 rangkaian uji, semua null.** Skor komposit, faktor tunggal, mekanik entry-acak, detektor regime, aliran order — tidak ada yang menunjukkan edge terukur di universe/periode ini. Skor 80 = "banyak kriteria checklist terpenuhi", bukan "80% peluang menang". Backtest total: −120 R dari 10.682 trade. Baca `RINGKASAN_AKHIR.md` (termasuk daftar "apa yang TIDAK boleh disimpulkan"). Tetap paper trade dulu.
 - Kalau Binance diblokir di jaringanmu, set endpoint alternatif:
   `export BINANCE_BASE="https://data-api.binance.vision"`
 
@@ -174,15 +200,38 @@ Setelah 30 trade tercatat di jurnal, cek dari file CSV: komponen mana yang skorn
 ## Struktur file
 
 ```
-screener.py      # CLI, pengambilan data, filter universe, output & ekspor
-inspect_symbol.py # Bedah detail satu ticker
-diagnose.py      # Diagnostik sebaran volume universe
-scoring.py       # Sistem skor 100 poin, veto rules, regime BTC, rencana trade
-indicators.py    # RSI, Stoch RSI, OBV, ATR, pivot, Fibonacci, zona S/R, pattern
-accumulation.py  # Mesin deteksi akumulasi: Wyckoff, VCP, squeeze, smart money, RS
-README.md        # File ini
-GEM_MODE.md      # Dokumentasi lengkap mode gem
-CLAUDE.md        # Konteks untuk Claude Code
+Inti screener
+  screener.py        # CLI, pengambilan data, filter universe, output & ekspor
+  scoring.py         # Sistem skor 100 poin, veto rules, regime BTC, rencana trade
+  indicators.py      # RSI, Stoch RSI, OBV, ATR, pivot, Fibonacci, zona S/R, pattern
+  accumulation.py    # Mesin deteksi akumulasi (mode gem): Wyckoff, VCP, squeeze, smart money, RS
+  inspect_symbol.py  # Bedah detail satu ticker
+  diagnose.py        # Diagnostik sebaran volume universe
+  verify.py          # Gerbang mutu: sintaks + impor + encoding + selftest (jalankan setelah tiap edit)
+
+Operasional harian
+  daily_run.py           # Cron harian: screener 15 simbol beku (long+short) + notifikasi + ide_trade.xlsx
+  short_scan.py          # Kandidat SHORT (BELUM PERNAH DIUJI)
+  journal.py             # Jurnal trade sebagai instrumen riset (append-only + hash), journal.py review
+  universe_frozen.json   # 15 simbol dibekukan 2026-09-05, dibaca daily_run.py — jangan diedit sampai trade ke-50
+
+Riset / validasi (read-only, tidak mengubah scoring)
+  backtest.py        # Walk-forward evaluate() di .cache_history/
+  factor_test.py     # 9 faktor mentah per kuintil + holdout
+  mechanics_test.py  # 6 varian mekanik dengan entry acak
+  regime_test.py     # 5 detektor regime long/short — Tahap 1
+  orderflow_test.py  # IC cross-sectional 5 fitur aliran order
+  fetch_history.py   # Isi .cache_history/ (422 pair, 2021–2026)
+  fetch_orderflow.py # Isi .cache_orderflow/ (kolom qav/trades/tbbav/tbqav)
+
+Dokumentasi
+  README.md              # File ini
+  CLAUDE.md              # Konteks untuk Claude Code
+  GEM_MODE.md            # Dokumentasi lengkap mode gem
+  DEPLOY.md              # Setup cron daily_run.py + bot Telegram di VPS
+  RINGKASAN_AKHIR.md     # Kesimpulan lengkap 5 rangkaian uji (skor tidak prediktif)
+  KRITERIA_EVALUASI.md   # Pra-registrasi eksperimen trading manual (universe beku)
+  HIPOTESIS_*.md / *_HASIL.md / HASIL_*.md  # Protokol + hasil per rangkaian uji
 ```
 
 ---
