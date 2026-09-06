@@ -7,8 +7,12 @@
 # Jurnal trade (journal.py) -- data pribadi user, tidak otomatis dicommit.
 # Append-only + ter-hash; backup manual jadi tanggung jawab user kalau mau disimpan.
 journal.jsonl
-# Secret bot Telegram -- JANGAN pernah dicommit.
+# Secret notifikasi (bot Telegram, dst) -- JANGAN pernah dicommit.
 .env
+# Kredensial service account Google Sheets -- SAMA SENSITIFNYA dgn .env,
+# kunci akses ke spreadsheet. Sudah tercakup pola *.json di bawah, tapi
+# ditulis eksplisit di sini supaya tidak bergantung diam-diam ke aturan itu.
+gsheet_credentials.json
 *.log
 __pycache__/
 *.pyc
