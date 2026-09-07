@@ -292,8 +292,8 @@ Yang dilaporkan:
   tabel graf pendanaan/co-trade yang sudah diringkas. **Raw swap tidak pernah
   di-download.**
 - Kalau kredit tetap tidak cukup untuk cakupan penuh: **sampling di-pra-
-  registrasi di sini** — ambil **acak 40% mint universe**, seed `20260907`,
-  ditetapkan sebelum melihat hasil apa pun. Bukan dipilih setelah lihat data.
+  registrasi di sini** — lihat "ATURAN SAMPLING" di bawah. Bukan dipilih
+  setelah lihat data.
 - **Penyimpanan lokal**: **DuckDB** (`.cache_whale/whale.duckdb`). Volume
   terlalu besar untuk parquet flat / commit.
 - `.cache_whale/` **gitignored**. Yang di-commit: `HIPOTESIS_WHALE.md`,
@@ -303,6 +303,84 @@ Yang dilaporkan:
   commit untuk kerapian).
 
 ---
+
+## ATURAN SAMPLING (dibekukan sekarang — jangan diputuskan saat kredit menipis)
+
+Kalau kredit Dune tidak cukup untuk cakupan penuh, universe mint dikecilkan
+secara **DETERMINISTIK berdasarkan hash mint address** — bukan RNG runtime,
+supaya pemilihan tidak bisa terkontaminasi oleh hasil yang sudah terlihat.
+
+**Metode (tetap):**
+
+```
+keep(mint)  <=>  int(sha256(mint_address_utf8).hexdigest()[:8], 16) % 100 < P
+```
+
+- `mint_address_utf8` = string base58 mint address apa adanya (tanpa trim,
+  tanpa lowercase — address Solana case-sensitive).
+- `sha256` hex digest, ambil **8 karakter hex pertama**, parse sebagai integer
+  basis-16, modulo 100.
+- **Tingkat sampling berjenjang** (dipakai berurutan, hanya turun kalau tingkat
+  di atasnya terbukti tak terjangkau kredit):
+  - `P = 100` — cakupan penuh (target).
+  - `P = 40` — kalau penuh tak terjangkau.
+  - `P = 15` — kalau 40 pun tak terjangkau.
+- Tingkat yang **akhirnya dipakai dicatat di `HASIL_WHALE.md`** beserta jumlah
+  mint sebelum/sesudah, dan **semua** angka lulus/gagal dihitung ulang hanya
+  pada subset itu (kontrol acak untuk B juga ditarik dari subset yang sama).
+- Keputusan turun tingkat **hanya** boleh karena query gagal/kehabisan kredit —
+  **tidak** karena hasil sementara terlihat kurang menarik. Titik penurunan
+  dicatat di log kredit (lihat bawah).
+- Tidak ada seed RNG di sini: hash deterministik = subset yang sama persis bisa
+  direproduksi siapa pun dari daftar mint.
+
+## VALIDASI KELENGKAPAN (lebih penting dari soal kredit)
+
+Sinyal cluster butuh **SEMUA** pembelian entitas berkualitas dalam jendela
+72 jam. Kalau agregasi/hasil server terpotong karena batas baris (mis. 40.000)
+atau batas datapoint, sinyal jadi **tidak lengkap tanpa error apa pun** —
+entitas ke-5..ke-N hilang diam-diam, N terhitung terlalu kecil, sinyal nyata
+terlewat (atau sebaliknya kalau yang terpotong justru baris awal).
+
+**Aturan (wajib, tiap query):**
+
+1. **Deteksi potong.** Query yang mengembalikan jumlah baris **tepat di**
+   (atau dalam 1% dari) batas hasil yang diketahui → ditandai
+   `SUSPECT_TRUNCATED`. Query semacam itu **dipecah** (per rentang tanggal
+   lebih kecil, atau per shard hash mint) sampai tiap potongan jauh di bawah
+   batas, lalu digabung lokal di DuckDB.
+2. **Cek silang volume/trade.** Untuk tiap partisi bulan × sumber data, jalankan
+   **query kontrol terpisah yang murah** (hanya `COUNT(*)` dan `SUM(amount_usd)`
+   tanpa `GROUP BY` berat) dan bandingkan dengan hasil agregasi detail:
+   `|total_detail − total_kontrol| / total_kontrol ≤ 0.5%`. Kalau meleset →
+   `MISMATCH`, dicatat, partisi itu **tidak dipakai** sampai direkonsiliasi.
+   **Tidak lanjut diam-diam.**
+3. **Cek kontinuitas.** Tiap bulan di jendela 2025-01 → 2026-09 harus punya
+   baris; bulan dengan trade = 0 → dicurigai adapter Dune belum mencakup
+   periode itu → dicatat sebagai lubang cakupan di `HASIL_WHALE.md`.
+4. Ringkasan status tiap partisi (`OK` / `SUSPECT_TRUNCATED` / `MISMATCH` /
+   `GAP`) ditulis ke `.cache_whale/coverage_report.csv` dan direproduksi di
+   `HASIL_WHALE.md`. **Hasil A/B tidak dilaporkan sebagai valid untuk partisi
+   yang tidak `OK`.**
+
+## LOG PEMAKAIAN KREDIT
+
+Tiap eksekusi query Dune dicatat satu baris ke `.cache_whale/credit_log.csv`:
+
+```
+timestamp_utc, nama_query, query_id, execution_id, rentang_tanggal/shard,
+baris_hasil, batas_baris, status_potong, credits_before, credits_after,
+credits_used, catatan
+```
+
+- `credits_before/after` dibaca dari endpoint kuota Dune sebelum & sesudah tiap
+  eksekusi (kalau endpoint kuota tak tersedia di tier ini, catat
+  `credits_used` dari header respons eksekusi kalau ada, atau `NA` + estimasi).
+- Kalau kredit habis di tengah jalan: `HASIL_WHALE.md` menyebut **persis** query
+  mana yang gagal, berapa cakupan (mint, bulan, tanggal pemisah) yang sudah
+  tercapai, dan tingkat sampling `P` yang aktif saat itu. Hasil parsial
+  dilaporkan sebagai parsial, tidak dibuang dan tidak dipoles jadi terlihat
+  lengkap.
 
 ## HOLDOUT
 
