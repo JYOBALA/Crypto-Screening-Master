@@ -8,9 +8,6 @@
 # universe_defi.json + raw/ + _chains/ + _prices/). Pemetaan protokol->simbol
 # direproduksi di HASIL_DEFI.md (artefak yang di-commit).
 .cache_defi/
-# Arsip data whale Solana (dibuat fetch_whale.py, sangat besar; DuckDB +
-# universe_whale.json + hasil query Dune). Ringkasan di HASIL_WHALE.md.
-.cache_whale/
 # Jurnal trade (journal.py) -- data pribadi user, tidak otomatis dicommit.
 # Append-only + ter-hash; backup manual jadi tanggung jawab user kalau mau disimpan.
 journal.jsonl
