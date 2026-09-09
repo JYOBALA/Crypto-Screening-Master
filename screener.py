@@ -7,7 +7,7 @@ Data: Binance public API (tanpa API key, tanpa login).
 
 Contoh:
     python screener.py --mode daily
-    python screener.py --mode weekly --min-score 70 --capital 10000
+    python screener.py --mode weekly --min-score 60 --capital 10000
     python screener.py --mode daily --show-all --top 30
     python screener.py --selftest
 """
@@ -76,7 +76,8 @@ DEFAULT_CFG = {
     "risk_pct": 1.5,
     "min_rr": 2.0,
     "max_plausible_rr": 15.0,   # di atas ini = geometri swing/support rusak (mis. R:R 1:66). Sanity-check, BUKAN filter kinerja — lihat CLAUDE.md
-    "min_score": 70,
+    "min_score": 55,   # Amandemen 2026-09-09: 70 -> 55, dasar PRAKTIS (laju tinjau chart 2-4/mgg di 15 koin beku), bukan prediktif. Lihat KRITERIA_EVALUASI.md
+
     "max_open_positions": 5,
     # Mode GEM (deteksi akumulasi)
     "gem_min_bars": 220,             # butuh sejarah panjang untuk lihat basis
@@ -343,8 +344,9 @@ def print_report(regime, results, cfg, mode, top=20, show_all=False):
     print(line)
 
     tradable = [r for r in results if not r["vetoed"] and r["total"] >= cfg["min_score"]]
+    watch_floor = cfg["min_score"] - 10
     watch = [r for r in results if not r["vetoed"]
-             and 60 <= r["total"] < cfg["min_score"]]
+             and watch_floor <= r["total"] < cfg["min_score"]]
 
     header = (f"{'#':<3} {'TICKER':<13} {'SKOR':>5} {'GR':<3} "
               f"{'VOL':>4} {'SRS':>4} {'FIB':>4} {'S/R':>4} {'PAT':>4}  "
@@ -365,7 +367,7 @@ def print_report(regime, results, cfg, mode, top=20, show_all=False):
                   f"{fmt_price(p['sl']):>13} {fmt_price(p['tp1']):>13} "
                   f"{p['rr1']:>5.1f}")
 
-    print(f"\n▶ WATCHLIST (skor 60–{cfg['min_score'] - 1}, pasang alert) — {len(watch)} ticker")
+    print(f"\n▶ WATCHLIST (skor {watch_floor}–{cfg['min_score'] - 1}, pasang alert) — {len(watch)} ticker")
     if watch:
         print("  " + ", ".join(f"{r['symbol']}({r['total']})" for r in watch[:25]))
 
@@ -378,7 +380,7 @@ def print_report(regime, results, cfg, mode, top=20, show_all=False):
     print(line)
     if not detail:
         print("\n  Tidak ada kandidat sama sekali. Jalankan --show-all untuk melihat alasan veto,")
-        print("  atau longgarkan filter: --min-score 60 --min-volume 10000000\n")
+        print("  atau longgarkan filter: --min-score 45 --min-volume 10000000\n")
     for r in detail:
         p = r["plan"]
         print(f"\n■ {r['symbol']}  —  {r['total']}/100  ({r['grade']})   "

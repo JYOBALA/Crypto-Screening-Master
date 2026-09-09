@@ -147,7 +147,8 @@ python3 inspect_symbol.py NEARUSDT
 python3 diagnose.py
 ```
 
-Opsi utama: `--capital` (default 10000), `--risk-pct` (1.5), `--min-score` (70),
+Opsi utama: `--capital` (default 10000), `--risk-pct` (1.5), `--min-score` (55,
+Amandemen 2026-09-09 — dasar praktis, lihat `KRITERIA_EVALUASI.md`),
 `--min-rr` (2.0), `--min-volume`, `--show-all` (tampilkan yang kena veto beserta
 alasan), `--limit-symbols` (uji cepat), `--no-cache`. Cache harian di `.cache/`.
 
