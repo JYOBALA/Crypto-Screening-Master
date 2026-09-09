@@ -71,8 +71,15 @@ SHORT_DISCLAIMER = "Kandidat SHORT belum pernah diuji (beda dari long yang sudah
 FORBIDDEN_WORDS = ("beli", "peluang", "entry sekarang")
 
 XLSX_NOTE = "IDE TRADE untuk dicek chart manual. BUKAN sinyal. Skor: 5 uji null. Short: belum diuji."
-XLSX_COLUMNS = ["tanggal", "side", "ticker", "harga", "skor", "entry", "sl", "tp", "rr",
-                "size_usd", "catatan", "validasi", "onchain_aktivitas", "chart"]
+# entry_style: bedakan "harga pasar" dari "limit, tunggu pullback" -- tanpa ini entry
+#   jauh di bawah harga terlihat seperti bug (lihat CLAUDE.md). Kolom "catatan" &
+#   "onchain_aktivitas" dihapus 2026-09-09: tak pernah diisi kode & tak ada sumber
+#   datanya di proyek read-only ini.
+XLSX_COLUMNS = ["tanggal", "side", "ticker", "harga", "skor", "entry", "entry_style",
+                "sl", "tp", "rr", "size_usd", "validasi", "chart"]
+# kolom yang HARUS dikirim ke Google Sheets sebagai angka native (bukan teks) --
+# kalau dikirim sbg string, lokal ID (titik=ribuan) menafsir ulang "1.2055" -> 12055
+NUMERIC_GSHEET_COLS = {"harga", "skor", "entry", "sl", "tp", "rr", "size_usd"}
 FILL_LONG = PatternFill(start_color="FFD9EAD3", end_color="FFD9EAD3", fill_type="solid")   # hijau pucat
 FILL_SHORT = PatternFill(start_color="FFF4CCCC", end_color="FFF4CCCC", fill_type="solid")  # merah pucat
 
@@ -241,7 +248,9 @@ def _format_side_block(label: str, candidates: list[dict], extra_disclaimer: str
         if r.get("funding_rate_last_8h_pct") is not None:
             fund = f"  funding 8j terakhir: {r['funding_rate_last_8h_pct']:+.4f}%"
         lines.append(f"- {r['symbol']}  skor {r['total']}/100 ({r['grade']})  harga {r['price']}{fund}")
-        lines.append(f"  entry {p['entry']}  SL {p['sl']}  TP1 {p['tp1']} (R:R 1:{p['rr1']})")
+        style = p.get("entry_style")
+        lines.append(f"  entry {p['entry']}" + (f" ({style})" if style else "")
+                     + f"  SL {p['sl']}  TP1 {p['tp1']} (R:R 1:{p['rr1']})")
         lines.append(f"  https://www.tradingview.com/chart/?symbol=BINANCE:{r['symbol']}")
     rest = len(candidates) - MAX_CANDIDATES_IN_MESSAGE
     if rest > 0:
@@ -294,8 +303,9 @@ def build_output_rows(today_date, long_cands: list[dict], short_cands: list[dict
 
     if not combined:
         return [{"tanggal": today_date, "side": "-", "ticker": "(tidak ada kandidat)",
-                  "harga": None, "skor": None, "entry": None, "sl": None, "tp": None, "rr": None,
-                  "size_usd": None, "catatan": "", "validasi": "", "onchain_aktivitas": "",
+                  "harga": None, "skor": None, "entry": None, "entry_style": "",
+                  "sl": None, "tp": None, "rr": None,
+                  "size_usd": None, "validasi": "",
                   "chart": None}]
 
     rows = []
@@ -304,9 +314,10 @@ def build_output_rows(today_date, long_cands: list[dict], short_cands: list[dict
         rows.append({
             "tanggal": today_date, "side": side, "ticker": r["symbol"],
             "harga": r["price"], "skor": r["total"],
-            "entry": p["entry"], "sl": p["sl"], "tp": p["tp1"], "rr": p["rr1"],
+            "entry": p["entry"], "entry_style": p.get("entry_style", ""),
+            "sl": p["sl"], "tp": p["tp1"], "rr": p["rr1"],
             "size_usd": p.get("position_size"),
-            "catatan": "", "validasi": validasi, "onchain_aktivitas": "",
+            "validasi": validasi,
             "chart": f"https://www.tradingview.com/chart/?symbol=BINANCE:{r['symbol']}",
         })
     return rows
@@ -344,6 +355,29 @@ def _peek_xlsx_has_date(path: str, date_str: str) -> bool:
     return _cell_date_str(v) == date_str
 
 
+def _sync_xlsx_header(ws) -> None:
+    """Samakan baris catatan (row 1) + header (row 2) dgn XLSX_COLUMNS/XLSX_NOTE
+    saat ini. Dipanggil tiap run supaya perubahan skema kolom (mis. entry_style
+    ditambah, catatan/onchain_aktivitas dihapus -- 2026-09-09) tidak membuat
+    header & data melenceng. Baris DATA lama tidak disentuh: kalau skemanya
+    berubah, tinjau baris sebelum run ini secara manual (dicatat ke log)."""
+    ncol = len(XLSX_COLUMNS)
+    current = [ws.cell(row=2, column=c + 1).value for c in range(ncol)]
+    if current == XLSX_COLUMNS and ws.cell(row=1, column=1).value == XLSX_NOTE:
+        return
+    logging.warning("Skema kolom ide_trade.xlsx berubah -- header row 1-2 ditulis ulang. "
+                    "Baris data sebelum run ini masih memakai kolom lama.")
+    for mr in list(ws.merged_cells.ranges):
+        if mr.min_row == 1:
+            ws.unmerge_cells(str(mr))
+    for c in range(1, max(ncol, ws.max_column) + 1):
+        ws.cell(row=1, column=c).value = XLSX_NOTE if c == 1 else None
+        ws.cell(row=2, column=c).value = XLSX_COLUMNS[c - 1] if c <= ncol else None
+    for cell in ws[2]:
+        cell.font = Font(bold=True)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ncol)
+
+
 def write_ide_trade_xlsx(path: str, rows: list[dict], today_str: str, force: bool) -> str:
     """Return 'written' atau 'skipped'. Melempar PermissionError apa adanya
     kalau file terkunci (mis. sedang dibuka di Excel) -- caller yang menangani
@@ -351,6 +385,7 @@ def write_ide_trade_xlsx(path: str, rows: list[dict], today_str: str, force: boo
     if os.path.exists(path):
         wb = openpyxl.load_workbook(path)
         ws = wb.active
+        _sync_xlsx_header(ws)
     else:
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -539,21 +574,26 @@ def write_gsheet_rows(rows: list[dict], today_str: str, force: bool) -> str:
     for rowdata in rows:
         row_vals = []
         for col in XLSX_COLUMNS:
-            val = rowdata[col]
-            if col == "chart" and val:
-                row_vals.append(f'=HYPERLINK("{val}", "Chart")')
-            elif col == "tanggal" and val is not None:
-                row_vals.append(val.isoformat() if hasattr(val, "isoformat") else str(val))
-            elif val is None:
+            val = rowdata.get(col)
+            if val is None or val == "":
                 row_vals.append("")
+            elif col == "tanggal":
+                # tetap string -- guard idempotensi membandingkan row[0] == today_str
+                row_vals.append(val.isoformat() if hasattr(val, "isoformat") else str(val))
+            elif col in NUMERIC_GSHEET_COLS:
+                # ANGKA NATIVE: float Python, bukan str(). Dengan RAW, Sheets tidak
+                # menafsir ulang per lokal (ID: titik=ribuan, koma=desimal).
+                row_vals.append(float(val))
             else:
+                # teks apa adanya. "chart" = URL polos: Sheets auto-linkify saat
+                # ditampilkan, dan tidak bergantung pemisah argumen rumus per lokal
+                # (di lokal ID =HYPERLINK("a","b") gagal -> #ERROR! karena butuh ';').
                 row_vals.append(str(val))
         values_matrix.append(row_vals)
 
-    # USER_ENTERED (bukan RAW) supaya =HYPERLINK() jadi formula (bisa
-    # diklik) dan angka (harga/skor/entry/dst) disimpan sbg angka, bukan teks.
+    # RAW: angka native disimpan sbagai angka tanpa reparse lokal; string tetap string.
     _gsheet_retry(ws.insert_rows, values=values_matrix, row=3,
-                  value_input_option=ValueInputOption.user_entered)
+                  value_input_option=ValueInputOption.raw)
 
     last_col = get_column_letter(len(XLSX_COLUMNS))
     formats = []

@@ -351,12 +351,22 @@ def build_trade_plan(df, fib_res, sr_res, pat_res, capital, risk_pct, size_mult)
     swing = fib_res.get("swing")
     a = float(ta.atr(df).iloc[-1])
 
-    # Entry: golden zone kalau harga masih di atasnya, kalau tidak pakai harga sekarang
+    # Entry: golden zone kalau harga masih di atasnya, kalau tidak pakai harga sekarang.
+    # entry_style menerangkan BEDA "harga pasar sekarang" vs "limit, tunggu pullback" --
+    # tanpa ini user lihat entry jauh di bawah harga & mengira ada bug (lihat CLAUDE.md).
     if fib:
         gz_hi, gz_lo = fib["0.5"], fib["0.618"]
-        entry = price if price <= gz_hi * 1.01 else (gz_hi + gz_lo) / 2
+        if price <= gz_hi * 1.01:
+            entry = price
+            entry_style = "harga pasar -- sudah di/di bawah golden zone, tak perlu tunggu pullback"
+        else:
+            entry = (gz_hi + gz_lo) / 2
+            disc = (price - entry) / price * 100
+            entry_style = (f"limit -- tunggu pullback ~{disc:.0f}% ke golden zone "
+                           f"{gz_lo:.6g}-{gz_hi:.6g}")
     else:
         entry = price
+        entry_style = "harga pasar -- tak ada swing Fibonacci acuan, pakai harga terakhir"
 
     # Stop loss: invalidasi struktur terendah yang masuk akal
     cands = []
@@ -414,7 +424,7 @@ def build_trade_plan(df, fib_res, sr_res, pat_res, capital, risk_pct, size_mult)
     pos_size = risk_amount / sl_dist if sl_dist > 0 else 0
 
     return {
-        "entry": entry, "sl": sl, "tp1": tp1, "tp2": tp2,
+        "entry": entry, "entry_style": entry_style, "sl": sl, "tp1": tp1, "tp2": tp2,
         "sl_pct": round(-sl_dist * 100, 2),
         "tp1_pct": round((tp1 - entry) / entry * 100, 2),
         "tp2_pct": round((tp2 - entry) / entry * 100, 2),

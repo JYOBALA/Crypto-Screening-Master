@@ -378,9 +378,17 @@ def build_short_trade_plan(df, fib_res, sr_res, capital, risk_pct, size_mult):
 
     if fib:
         gz_hi, gz_lo = fib["0.5"], fib["0.618"]
-        entry = price if price >= gz_lo * 0.99 else (gz_hi + gz_lo) / 2
+        if price >= gz_lo * 0.99:
+            entry = price
+            entry_style = "harga pasar -- sudah di/di atas golden zone, tak perlu tunggu bounce"
+        else:
+            entry = (gz_hi + gz_lo) / 2
+            prem = (entry - price) / price * 100
+            entry_style = (f"limit -- tunggu bounce ~{prem:.0f}% ke golden zone "
+                           f"{gz_lo:.6g}-{gz_hi:.6g}")
     else:
         entry = price
+        entry_style = "harga pasar -- tak ada swing Fibonacci acuan, pakai harga terakhir"
 
     cands = []
     if sr_res.get("last_swing_high"):
@@ -422,7 +430,7 @@ def build_short_trade_plan(df, fib_res, sr_res, capital, risk_pct, size_mult):
     pos_size = risk_amount / sl_dist if sl_dist > 0 else 0
 
     return {
-        "entry": entry, "sl": sl, "tp1": tp1, "tp2": tp2,
+        "entry": entry, "entry_style": entry_style, "sl": sl, "tp1": tp1, "tp2": tp2,
         "sl_pct": round(sl_dist * 100, 2),
         "tp1_pct": round(-(entry - tp1) / entry * 100, 2),
         "tp2_pct": round(-(entry - tp2) / entry * 100, 2),
