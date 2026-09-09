@@ -20,7 +20,8 @@ for _s in (sys.stdout, sys.stderr):          # konsisten UTF-8 juga di Windows
 ENV = {**os.environ, "PYTHONIOENCODING": "utf-8"}
 
 MODULES = ["indicators.py", "scoring.py", "accumulation.py",
-           "screener.py", "inspect_symbol.py", "diagnose.py", "backtest.py"]
+           "screener.py", "inspect_symbol.py", "diagnose.py", "backtest.py",
+           "calibrate_threshold.py"]
 
 def main() -> int:
     root = Path(__file__).parent

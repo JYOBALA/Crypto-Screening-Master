@@ -37,6 +37,12 @@ data/
 
 # Scratch / artefak run (jangan commit)
 scratch_*
+# Output mentah backtest.py & calibrate_threshold.py (di-regenerate; salinan
+# kurasi ada di arsip/ kalau perlu). backtest_trades.csv sudah tak dilacak di
+# root sejak pindah ke arsip/.
+backtest_trades.csv
+backtest_trades_*.csv
+calibrate_threshold_evals.csv
 
 # Arsip artefak riset selesai (backtest/factor_test/mechanics_test/dst).
 # Isinya SUDAH di-commit lewat `git mv` sebelum baris ini ditambahkan

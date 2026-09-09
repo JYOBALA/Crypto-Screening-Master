@@ -192,3 +192,84 @@ berlaku apa adanya, **tanpa pembelaan setelah fakta**.
   point-in-time) dan `.cache_orderflow/` (pembekuan universe sekarang);
   tidak disimpan sebagai script terpisah karena sifatnya pemeriksaan
   satu-kali untuk dokumen ini, bukan uji berulang.
+- `calibrate_threshold.py` — kalibrasi ambang skor pada 15 koin beku
+  (walk-forward, tanpa lookahead, meminjam mekanik `backtest.py`). Dasar
+  Amandemen 2026-09-09 di bawah. CSV mentah: `calibrate_threshold_evals.csv`.
+
+---
+
+## Amandemen 2026-09-09 — ambang skor
+
+**Teks di atas garis ini TIDAK diedit.** Bagian ini ditambahkan setelah 15
+koin dibekukan tetapi SEBELUM trade pertama tercatat. Ia mengubah **satu**
+parameter operasional (`min_score`) dan tidak menyentuh kriteria evaluasi,
+universe, atau aturan eksekusi.
+
+**ALASAN:** ambang 70 diwarisi dari desain awal saat skor masih dianggap
+prediktif. Backtest membuktikan Spearman −0,132 (praktis nol; lihat
+`RINGKASAN_AKHIR.md`). Diagnosa awal 2026-09-09 pada 167 pair universe
+kandidat: skor MAKSIMUM hanya 70, satu-satunya. Pada 15 koin universe beku,
+skor tertinggi hari itu 62. Ambang 70 membuat eksperimen 50 trade mustahil
+tercapai.
+
+**KALIBRASI TEPAT SASARAN** (`calibrate_threshold.py`, walk-forward
+`evaluate()` pada 15 koin `universe_frozen.json`, jendela 2026-03-12 s.d.
+2026-09-08 = 181 hari / 25,9 minggu, sumber `.cache/` harian, 2.715 evaluasi
+simbol×hari):
+
+- **Distribusi skor** (semua evaluasi): min 5 · p25 27 · median 36 · p75 45 ·
+  p90 53 · p95 58 · **maks 75**. Grade sepanjang jendela: A+ (≥80) = **0**,
+  A (70–79) = 20, B (60–69) = 85, C (<60) = 2.610. Hanya 6 evaluasi berskor
+  ≥70 yang juga lolos veto — di seluruh 180 hari, seluruh 15 koin.
+- **Kandidat per minggu, SETELAH veto** (skor ≥ ambang DAN lolos semua veto):
+
+  | Ambang | Kandidat/mgg | Episode/mgg¹ | Total kandidat | Hari tanpa kandidat | Streak nol terpanjang |
+  |---:|---:|---:|---:|---:|---:|
+  | 40 | 13,03 | 4,72 | 337 | 65/181 (36%) | 30 hari |
+  | 45 | 9,36 | 4,10 | 242 | 83/181 (46%) | 32 hari |
+  | 50 | 5,69 | 3,06 | 147 | 99/181 (55%) | 32 hari |
+  | **55** | **3,67** | **2,32** | **95** | **118/181 (65%)** | **33 hari** |
+  | 60 | 1,86 | 1,20 | 48 | 142/181 (78%) | 36 hari |
+  | 65 | 0,89 | 0,58 | 23 | 160/181 (88%) | 60 hari |
+  | 70 | 0,23 | 0,19 | 6 | 175/181 (97%) | 66 hari |
+
+  ¹ Episode = simbol yang absen >3 hari lalu muncul lagi dihitung sebagai
+  chart baru untuk ditinjau; perkiraan beban tinjauan manual yang sebenarnya.
+
+- **Sebaran alasan veto** (2.069 dari 2.715 evaluasi = 76,2% kena veto;
+  berdasarkan alasan pertama): Regime BTC MERAH 26,8% · StochRSI daily
+  overbought (>80) 23,4% · R:R ke TP1 di bawah 1:2,0 → 22,4% · Fibonacci
+  tembus di bawah 0,786 (struktur batal) 12,8% · S/R baru breakdown support
+  6,9% · pola bearish 4,5% · R:R di atas `max_plausible_rr` 1:15 → 1,6% ·
+  divergensi volume 1,5%. (Kemunculan di posisi mana pun: R:R < 1:2,0 hadir
+  di 51,4% evaluasi ter-veto — veto tunggal paling sering.)
+
+**AMBANG BARU: `min_score` = 55.**
+
+**DASAR AMBANG BARU: praktis** (kapasitas tinjau chart manual), bukan
+prediktif. Tidak ada ambang yang lebih baik dari ambang lain atas dasar
+bukti, karena skor tidak prediktif (Spearman −0,13). 55 dipilih karena satu
+alasan operasional: ia satu-satunya ambang di grid {40,45,50,55,60,65,70}
+yang jatuh di pita 2–4 kandidat/minggu — laju yang bisa ditinjau chart-nya
+secara manual dan memungkinkan 50 trade tercapai dalam 6–12 bulan. Ambang 50
+menghasilkan 5,7/mgg (terlalu banyak untuk tinjauan manual disiplin), ambang
+60 menghasilkan 1,9/mgg (50 trade butuh >12 bulan). Di dalam pita, 55 juga
+yang paling selektif.
+
+**YANG TIDAK BERUBAH:** universe 15 koin beku · risiko 1% per trade · maks 3
+posisi terbuka · SL tidak digeser menjauh · kriteria LANJUT/BERHENTI di
+trade ke-50 (seluruh bagian "Kriteria di trade ke-50" di atas) · larangan
+menyetel bobot 25/20/20/20/15 atau `max_plausible_rr` berdasarkan hasil.
+`gem_min_score` (mode akumulasi) juga TIDAK diubah — amandemen ini hanya
+menyentuh screener swing daily/weekly.
+
+**CATATAN KEJUJURAN:** perubahan ini dibuat SETELAH menjalankan diagnosa dan
+melihat beberapa hari — bahkan beberapa minggu — nol kandidat. Itu urutan
+yang secara metodologis lemah (mengubah parameter setelah melihat data).
+Dicatat apa adanya. Mitigasi: (a) ambang dipilih atas dasar laju tinjauan,
+BUKAN atas dasar hasil trade mana pun — belum ada satu trade pun; (b) grid
+ambang dan target 2–4/minggu ditetapkan di `calibrate_threshold.py` sebelum
+melihat outputnya; (c) bahkan di ambang 55, 65% hari tetap nol kandidat dan
+ada periode kering 33 hari — kalau laju 50 trade tak tercapai dalam 12 bulan,
+itu temuan tentang universe/metodologi, BUKAN alasan menurunkan ambang lagi.
+Ambang tidak diturunkan di bawah 55 tanpa kalibrasi pra-registrasi baru.
