@@ -80,6 +80,16 @@ XLSX_COLUMNS = ["tanggal", "side", "ticker", "harga", "skor", "entry", "entry_st
 # kolom yang HARUS dikirim ke Google Sheets sebagai angka native (bukan teks) --
 # kalau dikirim sbg string, lokal ID (titik=ribuan) menafsir ulang "1.2055" -> 12055
 NUMERIC_GSHEET_COLS = {"harga", "skor", "entry", "sl", "tp", "rr", "size_usd"}
+# Format tampilan sel Google Sheets per kolom numerik. value_input_option=RAW
+# menyimpan angka dgn benar TAPI Sheets tetap bisa memilih notasi ilmiah utk
+# TAMPILAN (bukti spreadsheet nyata 2026-09-10: entry 1.2055093 tampil
+# "1,21E+00", sl 1.0817 tampil "1,08E+00"). numberFormat eksplisit menghapus
+# ketergantungan pada lokal & autoformat Sheets. Pola: 8 desimal cukup utk
+# harga kripto mikro (PEPE ~2.9e-06), rr 2 desimal, size/skor bilangan bulat.
+GSHEET_NUMBER_FORMATS = {
+    "harga": "0.00000000", "entry": "0.00000000", "sl": "0.00000000",
+    "tp": "0.00000000", "rr": "0.00", "size_usd": "0", "skor": "0",
+}
 FILL_LONG = PatternFill(start_color="FFD9EAD3", end_color="FFD9EAD3", fill_type="solid")   # hijau pucat
 FILL_SHORT = PatternFill(start_color="FFF4CCCC", end_color="FFF4CCCC", fill_type="solid")  # merah pucat
 
@@ -527,6 +537,83 @@ def _gsheet_init_header(ws) -> None:
     _gsheet_retry(ws.freeze, rows=2)
 
 
+GSHEET_STALE_MARKER_PREFIX = "^ SKEMA KOLOM LAMA di bawah baris ini"
+
+
+def _sync_gsheet_header(ws) -> str | None:
+    """Padanan _sync_xlsx_header() untuk Google Sheets. Bandingkan baris catatan
+    (row 1) + header (row 2) di worksheet dgn XLSX_NOTE/XLSX_COLUMNS TIAP run.
+
+    BUG yang ditutup (ditemukan 2026-09-10 dari spreadsheet nyata): header di
+    Sheets tidak pernah disinkronkan -- hanya ditulis sekali saat worksheet
+    dibuat (_gsheet_init_header). Setelah kolom catatan/onchain_aktivitas
+    dihapus (13ed842, 14->13 kolom), header lama tetap di tempat sementara
+    baris data baru pakai skema 13 kolom => nilai terbaca di kolom yang SALAH
+    (mis. header 'rr' berisi nilai tp).
+
+    Kalau header beda:
+      1. tulis ulang catatan + header (RAW),
+      2. hapus kolom sisa di luar len(XLSX_COLUMNS),
+      3. perbaiki merge + bold + freeze baris 1-2,
+      4. SISIPKAN baris penanda di atas data lama + catat ke log -- baris data
+         lama TIDAK diam-diam dibiarkan sejajar dgn header baru; user harus
+         tahu baris mana yang skemanya lawas dan meninjau/menghapusnya manual.
+
+    Return teks penanda kalau header disinkronkan, None kalau sudah sesuai.
+    """
+    from gspread.utils import ValueInputOption
+
+    ncol = len(XLSX_COLUMNS)
+    last_col = get_column_letter(ncol)
+    header = _gsheet_retry(ws.row_values, 2)
+    note_row = _gsheet_retry(ws.row_values, 1)
+    note0 = note_row[0] if note_row else ""
+
+    if header == list(XLSX_COLUMNS) and note0 == XLSX_NOTE and ws.col_count == ncol:
+        return None
+
+    all_values = _gsheet_retry(ws.get_all_values)
+    stale_data = [r for r in all_values[2:]
+                  if any(str(c).strip() for c in r)
+                  and not str(r[0]).startswith(GSHEET_STALE_MARKER_PREFIX)]
+    n_stale = len(stale_data)
+    today = datetime.now(timezone.utc).date().isoformat()
+    marker = (f"{GSHEET_STALE_MARKER_PREFIX} ({n_stale} baris, ditulis sebelum "
+              f"sinkronisasi {today}) -- kolom bisa bergeser, tinjau/hapus manual")
+
+    logging.warning(
+        "Header Google Sheets beda dari skema saat ini -- ditulis ulang. "
+        f"Header lama: {header!r} (col_count={ws.col_count}). "
+        f"{n_stale} baris data lama ditandai dgn baris penanda di row 3."
+    )
+
+    # 1. tulis ulang catatan + header
+    _gsheet_retry(ws.update, values=[[XLSX_NOTE] + [""] * (ncol - 1), list(XLSX_COLUMNS)],
+                  range_name=f"A1:{last_col}2", value_input_option=ValueInputOption.raw)
+
+    # 2. hapus kolom sisa skema lama (mis. kolom ke-14 = 'chart' lama)
+    if ws.col_count > ncol:
+        _gsheet_retry(ws.delete_columns, ncol + 1, ws.col_count)
+
+    # 3. merge + bold + freeze
+    try:
+        _gsheet_retry(ws.unmerge_cells, f"A1:{last_col}1")
+    except Exception:      # noqa: BLE001  (unmerge range tanpa merge = aman diabaikan)
+        pass
+    _gsheet_retry(ws.merge_cells, f"A1:{last_col}1")
+    _gsheet_retry(ws.format, f"A2:{last_col}2", {"textFormat": {"bold": True}})
+    _gsheet_retry(ws.freeze, rows=2)
+
+    # 4. baris penanda di atas data lama
+    if n_stale:
+        _gsheet_retry(ws.insert_row, [marker] + [""] * (ncol - 1), index=3,
+                      value_input_option=ValueInputOption.raw)
+        _gsheet_retry(ws.format, f"A3:{last_col}3",
+                      {"backgroundColor": {"red": 1.0, "green": 0.85, "blue": 0.4},
+                       "textFormat": {"bold": True, "italic": True}})
+    return marker
+
+
 def _gsheet_open_worksheet(gc, create_if_missing: bool):
     """Return worksheet, atau None kalau belum ada dan create_if_missing=False
     (dipakai _peek_gsheet_has_date -- worksheet belum ada berarti belum
@@ -572,6 +659,11 @@ def write_gsheet_rows(rows: list[dict], today_str: str, force: bool) -> str:
     gc = _gsheet_client()
     ws = _gsheet_open_worksheet(gc, create_if_missing=True)
 
+    # BUG A (2026-09-10): header di Sheets tidak pernah disinkronkan -- setelah
+    # skema kolom berubah, nilai terbaca di kolom yang salah. Samakan header
+    # dulu (juga menandai baris data lama), SEBELUM cek idempotensi/menulis.
+    _sync_gsheet_header(ws)
+
     all_values = _gsheet_retry(ws.get_all_values)
     existing_today_rows = [i for i, row in enumerate(all_values[2:], start=3)
                             if row and row[0] == today_str]
@@ -616,6 +708,17 @@ def write_gsheet_rows(rows: list[dict], today_str: str, force: bool) -> str:
         if color:
             formats.append({"range": f"A{r_idx}:{last_col}{r_idx}",
                              "format": {"backgroundColor": color}})
+
+    # BUG B (2026-09-10): value_input_option=RAW menyimpan angka dgn benar tapi
+    # Sheets tetap bisa menampilkannya dlm notasi ilmiah. Paksa numberFormat
+    # eksplisit utk SETIAP kolom numerik, seluruh kolom dari row 3 ke bawah
+    # (rentang terbuka "F3:F") -- mencakup baris lama & baru, lepas dari
+    # lokal/autoformat.
+    for col, pattern in GSHEET_NUMBER_FORMATS.items():
+        letter = get_column_letter(XLSX_COLUMNS.index(col) + 1)
+        formats.append({"range": f"{letter}3:{letter}",
+                         "format": {"numberFormat": {"type": "NUMBER", "pattern": pattern}}})
+
     if formats:
         _gsheet_retry(ws.batch_format, formats)
 
