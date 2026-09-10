@@ -363,13 +363,25 @@ def _sync_xlsx_header(ws) -> None:
     berubah, tinjau baris sebelum run ini secara manual (dicatat ke log)."""
     ncol = len(XLSX_COLUMNS)
     current = [ws.cell(row=2, column=c + 1).value for c in range(ncol)]
-    if current == XLSX_COLUMNS and ws.cell(row=1, column=1).value == XLSX_NOTE:
+    if (current == XLSX_COLUMNS and ws.cell(row=1, column=1).value == XLSX_NOTE
+            and ws.max_column == ncol):
         return
     logging.warning("Skema kolom ide_trade.xlsx berubah -- header row 1-2 ditulis ulang. "
                     "Baris data sebelum run ini masih memakai kolom lama.")
     for mr in list(ws.merged_cells.ranges):
         if mr.min_row == 1:
             ws.unmerge_cells(str(mr))
+    # Buang kolom sisa skema lama (mis. catatan/onchain_aktivitas dihapus
+    # 2026-09-09) supaya tidak ada kolom hantu di sebelah 'chart'. HANYA kalau
+    # kolom itu benar-benar kosong di semua baris -- kalau masih ada data lama
+    # di sana, biarkan & andalkan peringatan log di atas (kontrak: baris data
+    # lama tidak disentuh).
+    while ws.max_column > ncol:
+        c = ws.max_column
+        if any(ws.cell(row=r, column=c).value not in (None, "")
+               for r in range(1, ws.max_row + 1)):
+            break
+        ws.delete_cols(c, 1)
     for c in range(1, max(ncol, ws.max_column) + 1):
         ws.cell(row=1, column=c).value = XLSX_NOTE if c == 1 else None
         ws.cell(row=2, column=c).value = XLSX_COLUMNS[c - 1] if c <= ncol else None
