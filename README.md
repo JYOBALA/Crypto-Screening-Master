@@ -31,7 +31,7 @@ pengukuran.
 | **Backtest komposit** (`backtest.py`) | 422 pair USDT · 10.682 trade · 2021–2026 | Walk-forward tanpa lookahead; skor 100 poin + veto + rencana trade dijalankan tiap bar | **−120 R total.** Korelasi skor total ↔ hasil: Pearson −0,01 / Spearman −0,13. Kelima komponen \|r\| < 0,02. Pita skor **tidak monoton.** Skor ≥70 kehilangan seluruh "edge" begitu 3 winner teratas dibuang (−0,007 R). |
 | **Faktor tunggal** (`factor_test.py`) | 13.020 sinyal · 364 koin | IC Spearman per faktor + koreksi within-symbol (demeaned per koin) + ANOVA identitas koin + holdout 30% simbol (sekali jalan) | **0 dari 9 faktor bertahan.** Satu (`dist_to_res_pct`) lolos discovery lalu **gugur di holdout** (arah kebalikan, tidak monoton). |
 | **Mekanik entry-acak** (`mechanics_test.py`) | 8.000 entry acak · 6 varian | Seleksi dinetralkan total (entry acak); set entry identik untuk semua varian; uji A baseline / B tanpa BE / C SL 3×ATR / D trailing / E timeout 90 / F full-exit TP1 | **Keenam varian E[R] negatif** (−0,055 s/d −0,095 R). 95% CI **seluruhnya di bawah nol.** E[R] tanpa 5 trade terbaik ≈ E[R] penuh → negatif **struktural**, bukan efek ekor. |
-| **Detektor regime** (`regime_test.py`) | 5 detektor · ~130 minggu evaluasi | Walk-forward; 95% CI = bootstrap blok per minggu (2000 resample) menghormati korelasi antar-koin | **Tidak ada detektor yang lolos.** Selisih BULL−BEAR terbesar +2,8 pp (CI [−2,5, +8,1]). 3 dari 5 detektor **anti-prediktif.** Tahap 2 (long/short) tidak dijalankan — prasyarat gagal. |
+| **Detektor regime** (`regime_test.py`) | 5 detektor · ~256 titik evaluasi mingguan | Walk-forward; 95% CI = bootstrap blok per minggu (2000 resample) menghormati korelasi antar-koin | **Tidak ada detektor yang lolos.** Selisih BULL−BEAR terbesar +2,8 pp (CI [−2,5, +8,1]). 3 dari 5 detektor **anti-prediktif.** Tahap 2 (long/short) tidak dijalankan — prasyarat gagal. |
 | **Aliran order** (`orderflow_test.py`) | 30 uji IC (5 fitur × 3 horizon × 2 universe) | Cross-sectional (IC Spearman harian vs return demeaned); ambang t-stat dinaikkan 3,0→3,5 untuk 30 uji; holdout seed baru | **0 dari 30 lulus semua kriteria.** 4 lolos discovery; kandidat terkuat (`taker_buy_ratio`, t hingga +6,21) **berbalik arah negatif** di 47 simbol holdout. |
 | **Data fundamental protokol** (`defi_test.py`) | 15 uji IC (5 fitur × 3 horizon) · 172 protokol DefiLlama↔Binance | Cross-sectional + versi within-symbol; fitur di-lag 2 hari (data DefiLlama direvisi surut); TVL dikoreksi harga (Laspeyres); holdout seed baru | **0 dari 15 lulus.** `tvl_share_of_chain` punya IC cross-sectional kuat (t +7,1) tapi **within-symbol ≈ 0** — murni seleksi protokol, nol timing. `mcap/fees` signifikan tapi tidak monoton (Q5−Q1 lawan arah). Detail: [`HASIL_DEFI.md`](HASIL_DEFI.md). |
 
@@ -74,8 +74,8 @@ diperoleh — dirancang untuk **menyulitkan diri sendiri menemukan sinyal palsu:
   native pada harga tetap (Laspeyres), bukan nilai USD — supaya "TVL naik"
   tidak sekadar berarti "harga token naik".
 - **Bootstrap sadar-korelasi.** CI regime dihitung dengan bootstrap blok
-  mingguan — mengakui bahwa 30.000 observasi koin yang bergerak bersama hanya
-  bernilai ~130 minggu sampel efektif.
+  mingguan — mengakui bahwa puluhan ribu observasi koin yang bergerak bersama
+  hanya bernilai ~256 titik evaluasi mingguan sampel efektif.
 - **Batasan ditulis eksplisit.** Setiap dokumen hasil menutup dengan daftar
   kesimpulan yang **tidak** ditopang datanya.
 

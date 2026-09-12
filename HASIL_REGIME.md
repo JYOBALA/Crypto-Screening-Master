@@ -5,7 +5,10 @@ Script: `regime_test.py`. Data: `.cache_history/` (422 pair, 2021–2026).
 Ukuran: return **30 hari ke depan** universe (per koin), dibandingkan antara titik
 evaluasi mingguan berlabel BULL vs BEAR. 95% CI = bootstrap blok per minggu
 (2000 resample) — menghormati fakta bahwa semua koin bergerak bersama, jadi
-sampel efektif ≈ 130 minggu, bukan puluhan ribu observasi.
+sampel efektif ≈ **256 titik evaluasi mingguan** per detektor (mis. R1: 137
+BULL + 119 BEAR), bukan puluhan ribu observasi. *(Dikoreksi 2026-09-11 — audit
+independen: angka "≈130 minggu" di versi sebelumnya meleset ~2×; kesimpulan
+tak berubah, CI tetap lebar karena alasan yang sama. Lihat `AUDIT_2026-09-11.md`.)*
 
 ## Kriteria lulus (ketiganya)
 1. Selisih BULL − BEAR ≥ 5 poin persen
@@ -37,7 +40,7 @@ sampel efektif ≈ 130 minggu, bukan puluhan ribu observasi.
   (CI [−2,5, +8,1]). Bukan fondasi yang cukup.
 - CI lebar (±5 pp) meski puluhan ribu observasi koin — karena bootstrap blok
   menghitung dengan benar bahwa observasi dalam satu minggu berkorelasi. Sampel
-  regime efektif hanya ~130 minggu.
+  regime efektif hanya ~256 titik evaluasi mingguan.
 
 ## Kesimpulan
 

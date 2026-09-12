@@ -16,6 +16,17 @@
 5. **Kalau menemukan bug, laporkan apa adanya** — termasuk bug yang berasal dari saran
    Claude sebelumnya. Riwayat proyek ini sudah membuktikan bug memang ada.
 6. **Bahasa Indonesia** untuk semua komunikasi, komentar kode, dan output.
+7. **CSV hasil riset TIDAK boleh di-`.gitignore` setelah temuannya difinalkan
+   (dituliskan ke `HASIL_*.md`/`RINGKASAN_AKHIR.md`/`CLAUDE.md`).** Commit CSV
+   final ke `arsip/` (tambahkan ke allowlist `arsip/*` di `.gitignore`), bukan
+   cuma "dikirim ke user". Audit independen 2026-09-11 menemukan
+   `arsip/backtest_v2_422pair.csv` gitignored, tak pernah di-commit — tak ada
+   jejak kapan/dari kode versi apa file itu dibuat, dan ternyata artefak
+   **pra-perbaikan bug regime BTC** (`c631fda`) yang sudah lama dianggap sudah
+   diperbaiki, membuat headline `RINGKASAN_AKHIR.md` (−120 R/10.682 trade)
+   tidak bisa diverifikasi ulang selama berbulan-bulan. Lihat
+   `AUDIT_2026-09-11.md`. Arsip yang tidak bisa diaudit = laporan yang tidak
+   bisa diverifikasi.
 
 ## Perintah harian user
 
@@ -164,7 +175,7 @@ Riwayat ini penting — semuanya lolos dari selftest dan baru ketahuan dari data
 
 ## Pelajaran: pembalikan max_plausible_rr
 
-Backtest v1 (357 trade, 26 pair) menunjukkan pita R:R rencana 0-3 unggul jauh
+Backtest v1 (357 trade, 20 simbol unik) menunjukkan pita R:R rencana 0-3 unggul jauh
 (+0.326R) atas pita 5-8 (+0.025R). Atas dasar itu ambang diturunkan 15 -> 8.
 Backtest v2 (422 pair, 507k bar) membalikkannya: 5-8 = +0.08R, 0-3 = -0.04R.
 

@@ -55,7 +55,10 @@ setelah demeaned — persis pola "faktor cuma proksi ukuran/volatilitas koin".
 
 ## Holdout (30% koin, 3.775 sinyal) — sekali jalan
 
-Hanya `dist_to_res_pct` yang diuji (satu-satunya yang lolos discovery).
+Hanya `dist_to_res_pct` yang diuji (satu-satunya yang lolos discovery). Tabel
+kuintil di bawah pakai **3.735** dari 3.775 sinyal holdout (40 baris dengan
+`dist_to_res_pct` NaN dibuang sebelum `qcut` 5-kuintil — tidak memengaruhi
+verdict).
 
 | Q | n | E[R] mentah | E[R] demeaned |
 |---|---:|---:|---:|

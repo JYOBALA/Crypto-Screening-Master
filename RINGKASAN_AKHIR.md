@@ -15,7 +15,7 @@ sisi, SL menang kalau satu bar menyentuh SL & TP sekaligus. `scoring.py`,
 | **Backtest komposit** (`backtest.py`) | Skor 100 poin (Volume 25 / StochRSI 20 / Fib 20 / S/R 20 / Pattern 15) + veto + rencana trade, dijalankan tiap bar | 26 pair (v1) lalu **422 pair USDT, 2021–2026** (v2, `.cache_history/`) |
 | **Uji faktor tunggal** (`factor_test.py`) | 9 faktor mentah diuji sendiri-sendiri per kuintil, dengan koreksi within-symbol (demeaned per koin) + ANOVA identitas koin + **validasi holdout 30% simbol** (seed tetap, sekali jalan) | 13.020 sinyal non-veto, 364 koin |
 | **Uji mekanik** (`mechanics_test.py`) | 6 varian manajemen posisi dengan **ENTRY ACAK** (seleksi dinetralkan total), set entry sama untuk semua varian | 8.000 entry acak, 343 koin |
-| **Uji regime — Tahap 1** (`regime_test.py`) | 5 detektor regime (SMA200 / EMA50 / breadth / dominasi-proksi / BTC 90d), walk-forward; ukur return 30-hari-ke-depan universe saat BULL vs BEAR | ~130 minggu evaluasi, 422 koin |
+| **Uji regime — Tahap 1** (`regime_test.py`) | 5 detektor regime (SMA200 / EMA50 / breadth / dominasi-proksi / BTC 90d), walk-forward; ukur return 30-hari-ke-depan universe saat BULL vs BEAR | ~256 titik evaluasi mingguan, 422 koin |
 | **Konteks** | Return buy-and-hold per koin | 381 koin, dari bar warm-up ke-250 sampai akhir data |
 
 Faktor yang diuji: `vol_ratio`, `obv_slope`, `stochrsi_k`, `stochrsi_htf`,
@@ -153,6 +153,32 @@ Pengembangan sistem skor ditutup di sini.
     dijalankan karena Tahap 1 gagal. Semua kesimpulan di sini adalah tentang
     **long-only**. Apakah short atau market-neutral punya edge di universe ini —
     tidak diketahui dari data ini.
+
+---
+
+## 4. Batasan metodologis (ditambahkan 2026-09-11, audit independen)
+
+**t-stat IC di `orderflow_test.py` dan `defi_test.py` menggelembung karena
+horizon tumpang tindih.** Kedua script menghitung
+`tstat = mean_ic / (std(ic, ddof=1) / sqrt(n))` dengan memperlakukan deret IC
+harian sebagai observasi **independen**. Untuk horizon h=10 dan h=20, return
+ke depan pada hari t dan t+1 memakai jendela yang saling tumpang tindih 9/19
+hari — IC-nya otomatis berkorelasi serial. Tidak ada koreksi Newey-West (atau
+sejenisnya) untuk autokorelasi ini di kode manapun.
+
+Untuk kesimpulan **NULL** proyek ini (0/30 orderflow, 0/15 defi), efeknya
+**konservatif** — t-stat yang digelembungkan membuat ambang `|t|>=3.5` justru
+lebih longgar dari yang seharusnya (t "asli" yang dikoreksi-autokorelasi akan
+lebih kecil), sehingga kombinasi yang tetap gagal ambang ini pasti juga gagal
+dengan t-stat yang benar. Ini TIDAK mengubah kesimpulan 0/30 dan 0/15.
+
+**Tapi wajib ditindaklanjuti kalau kelak ada fitur yang "hampir lolos"**
+(mis. D4 `tvl_share_of_chain_slope30` yang mencapai t=+7,09 di IC cross-sectional
+sebelum gugur di gerbang within-symbol) — t-stat yang dilaporkan bukan ukuran
+signifikansi yang valid untuk horizon overlap. Sebelum klaim "lolos ambang
+t-stat" dipakai untuk memutuskan lanjut ke holdout, hitung ulang standard
+error dengan koreksi autokorelasi (Newey-West dengan lag ≈ h, atau block
+bootstrap per-tanggal seperti yang sudah dipakai `regime_test.py`).
 
 ---
 

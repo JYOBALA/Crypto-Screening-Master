@@ -6,8 +6,15 @@ run apa pun. Script: `orderflow_test.py`. Data: `.cache_orderflow/` (kolom
 
 ## Data
 
-- **U1 (likuid, vol24h ≥ $5jt):** 62 pair, 59 dengan data cukup, 75.587 bar-hari.
-- **U2 (luas, vol24h ≥ $1jt):** 158 pair, 152 dengan data cukup, 180.761 bar-hari.
+- **U1 (likuid, vol24h ≥ $5jt):** 62 pair, **57** dengan data cukup (≥100 bar
+  setelah unduh — 3 tanpa file parquet, 2 lagi <100 bar), **75.436** bar-hari.
+  *(Dikoreksi 2026-09-11 — audit independen: angka semula 59/75.587 dari
+  laporan awal menghitung file yang ada, bukan yang lolos syarat ≥100 bar di
+  `compute_symbol_panel()`. Tidak mengubah satu pun IC — lihat
+  `AUDIT_2026-09-11.md`.)*
+- **U2 (luas, vol24h ≥ $1jt):** 158 pair, **148** dengan data cukup (6 tanpa
+  parquet, 4 lagi <100 bar), **180.471** bar-hari. *(Dikoreksi sama seperti
+  U1 di atas.)*
 - Rentang: 2021-01-01 s/d 2026-09-04. Tidak ada gap tanggal, tidak ada NaN/nol di
   kolom order flow bahkan di bar paling awal.
 - Snapshot universe: U1 diambil 2026-09-05T00:53:03Z, U2 2026-09-05T00:52:09Z
